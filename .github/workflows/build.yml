@@ -1,0 +1,125 @@
+name: Build installers
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build with PyInstaller
+        run: pyinstaller main.spec --noconfirm
+
+      # ---------------- macOS ----------------
+      - name: Package macOS .app
+        if: runner.os == 'macOS'
+        run: |
+          cd dist
+          zip -r -y ../PhotoVideoSorter-macOS.zip "Photo & Video Sorter.app"
+
+      - name: Upload macOS artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotoVideoSorter-macOS
+          path: PhotoVideoSorter-macOS.zip
+
+      # ---------------- Windows ----------------
+      - name: Package Windows portable zip
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path dist\PhotoVideoSorter\* -DestinationPath PhotoVideoSorter-Windows-portable.zip
+
+      - name: Build Windows installer (Inno Setup)
+        if: runner.os == 'Windows'
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: packaging/windows/installer.iss
+          options: /DMyAppVersion=${{ github.ref_name }}
+
+      - name: Upload Windows portable artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotoVideoSorter-Windows-portable
+          path: PhotoVideoSorter-Windows-portable.zip
+
+      - name: Upload Windows installer artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotoVideoSorter-Windows-Setup
+          path: installer_output/PhotoVideoSorter-Setup.exe
+
+      # ---------------- Linux ----------------
+      - name: Package Linux AppImage
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p AppDir/usr/bin
+          cp -r dist/PhotoVideoSorter/* AppDir/usr/bin/
+
+          cat > AppDir/AppRun <<'EOF'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          exec "$HERE/usr/bin/PhotoVideoSorter" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+
+          cat > AppDir/photovideosorter.desktop <<EOF
+          [Desktop Entry]
+          Name=Photo & Video Sorter
+          Exec=PhotoVideoSorter
+          Icon=photovideosorter
+          Type=Application
+          Categories=Utility;
+          EOF
+
+          python3 -c "from PIL import Image; Image.new('RGB', (256, 256), '#D97757').save('AppDir/photovideosorter.png')"
+          cp AppDir/photovideosorter.png AppDir/.DirIcon
+
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir PhotoVideoSorter-Linux-x86_64.AppImage
+
+      - name: Upload Linux artifact
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotoVideoSorter-Linux
+          path: PhotoVideoSorter-Linux-x86_64.AppImage
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/PhotoVideoSorter-macOS/PhotoVideoSorter-macOS.zip
+            artifacts/PhotoVideoSorter-Windows-portable/PhotoVideoSorter-Windows-portable.zip
+            artifacts/PhotoVideoSorter-Windows-Setup/PhotoVideoSorter-Setup.exe
+            artifacts/PhotoVideoSorter-Linux/PhotoVideoSorter-Linux-x86_64.AppImage

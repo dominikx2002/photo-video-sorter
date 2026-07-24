@@ -1,0 +1,162 @@
+import os
+import shutil
+from datetime import datetime
+import time
+from .constants import MEDIA_EXT, PHOTO_EXT, VIDEO_EXT
+from .dates import get_exif_date, get_video_date, get_folder_date
+from .fsutil import unique_path
+from .scan_source import scan_source
+
+def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress, should_cancel=None):
+    """
+    Runs the sort. Talks to the caller only through callbacks:
+      log(msg)               -> one line of text, for the live log view
+      progress(done, total)  -> progress update
+      should_cancel()        -> optional, polled between files; return True
+                                to stop early (files already copied are kept)
+
+    log_path is decided by the caller (the app knows where it wants logs
+    to live - e.g. next to the script while developing, or in
+    ~/Library/Logs once packaged as a .app).
+
+    Returns (stats: dict, log_path: str). stats["cancelled"] is True if
+    should_cancel() stopped the run before every file was processed.
+    """
+    start_time = time.time()
+
+    have_pillow = True
+    try:
+        import PIL  # noqa
+    except ImportError:
+        have_pillow = False
+    have_ffprobe = shutil.which("ffprobe") is not None
+
+    out_base = os.path.join(dst_root, parent)
+    review_dir = os.path.join(out_base, "_NoEXIF_review")
+    os.makedirs(out_base, exist_ok=True)
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+
+    logfile = open(log_path, "w", encoding="utf-8")
+
+    def logline(msg, also_gui=True):
+        line = f"[{datetime.now():%H:%M:%S}] {msg}"
+        if also_gui:
+            log(line)
+        logfile.write(line + "\n")
+
+    logline("=" * 70)
+    logline("Photo & Video Sorter - run started")
+    logline("=" * 70)
+    logline(f"Source folder:              {src}")
+    logline(f"Destination folder:         {out_base}")
+    logline(f"Pillow (EXIF) available:    {'yes' if have_pillow else 'NO - install with: pip install Pillow'}")
+    logline(f"ffprobe (video dates):      {'yes' if have_ffprobe else 'NO - install with: brew install ffmpeg'}")
+    logline(f"Folder-name date fallback:  {'enabled' if use_folder_date else 'disabled'}")
+    logline(f"Log file:                   {log_path}")
+    logline("-" * 70)
+
+    stats = {"exif": 0, "folder": 0, "no_date": 0, "errors": 0, "scanned": 0, "skipped": 0, "cancelled": False}
+    no_date_files = []
+
+    scan = scan_source(src)
+    total = scan["total"]
+    logline(f"Pre-scan complete: {total} media file(s) found across {scan['folders']} folder(s).")
+    if scan["by_ext"]:
+        breakdown = ", ".join(f"{ext} ({n})" for ext, n in sorted(scan["by_ext"].items(), key=lambda kv: -kv[1]))
+        logline(f"File types found: {breakdown}")
+    logline("-" * 70)
+    progress(0, total)
+    done = 0
+
+    for dirpath, _, filenames in os.walk(src):
+        if stats["cancelled"]:
+            break
+        for name in filenames:
+            if should_cancel and should_cancel():
+                stats["cancelled"] = True
+                logline("Sorting cancelled by user - stopping before all files were processed.")
+                break
+            if name.startswith("."):
+                continue
+            ext = os.path.splitext(name)[1].lower()
+            src_file = os.path.join(dirpath, name)
+
+            if ext not in MEDIA_EXT:
+                stats["skipped"] += 1
+                logline(f"[SKIP] Not a recognized media file, ignored: {src_file}")
+                continue
+
+            stats["scanned"] += 1
+            try:
+                dt, source = None, None
+
+                if ext in PHOTO_EXT:
+                    dt = get_exif_date(src_file)
+                    if dt:
+                        logline(f"[EXIF] {name} -> date found: {dt:%Y-%m-%d %H:%M:%S}")
+                    else:
+                        logline(f"[EXIF] {name} -> no EXIF date tag present")
+                elif ext in VIDEO_EXT:
+                    dt = get_video_date(src_file)
+                    if dt:
+                        logline(f"[VIDEO] {name} -> creation_time found via ffprobe: {dt:%Y-%m-%d %H:%M:%S}")
+                    else:
+                        logline(f"[VIDEO] {name} -> no creation_time metadata found")
+                if dt:
+                    source = "exif"
+
+                if dt is None and use_folder_date:
+                    dt = get_folder_date(src_file)
+                    if dt:
+                        source = "folder"
+                        logline(f"[FOLDER-DATE] {name} -> no metadata date, using folder name pattern -> {dt:%Y-%m}")
+
+                if dt is None:
+                    os.makedirs(review_dir, exist_ok=True)
+                    target = unique_path(review_dir, name)
+                    shutil.copy2(src_file, target)
+                    stats["no_date"] += 1
+                    no_date_files.append(src_file)
+                    logline(f"[NO DATE] {name} -> no date found from any source, copied to _NoEXIF_review")
+                else:
+                    dest_dir = os.path.join(out_base, f"{dt.year:04d}", f"{dt.year:04d}-{dt.month:02d}")
+                    os.makedirs(dest_dir, exist_ok=True)
+                    target = unique_path(dest_dir, name)
+                    shutil.copy2(src_file, target)
+                    stats["exif" if source == "exif" else "folder"] += 1
+                    logline(f"[COPY] {name} -> {target}")
+
+            except Exception as e:
+                stats["errors"] += 1
+                logline(f"[ERROR] {src_file} -> {e}")
+
+            done += 1
+            progress(done, total)
+
+    elapsed = time.time() - start_time
+    logline("-" * 70)
+    if stats["cancelled"]:
+        logline("SORTING CANCELLED - partial results below")
+    logline("SUMMARY")
+    logline(f"  Media files scanned:             {stats['scanned']}")
+    logline(f"  Dated via EXIF/video metadata:   {stats['exif']}")
+    logline(f"  Dated via folder name:           {stats['folder']}")
+    logline(f"  No date found (sent to review):  {stats['no_date']}")
+    logline(f"  Errors:                          {stats['errors']}")
+    logline(f"  Non-media files skipped:         {stats['skipped']}")
+    logline(f"  Time elapsed:                    {elapsed:.1f}s")
+
+    total_out = stats['exif'] + stats['folder'] + stats['no_date']
+    if total_out == stats['scanned'] - stats['errors']:
+        logline("  VERIFICATION OK: file counts match.")
+    else:
+        logline("  WARNING: file counts do NOT match - please review the log!")
+
+    if no_date_files:
+        logline("", also_gui=False)
+        logline("Files with no date (please review manually in _NoEXIF_review):", also_gui=False)
+        for f in no_date_files:
+            logline(f"   - {f}", also_gui=False)
+
+    logfile.close()
+    return stats, log_path
