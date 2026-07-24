@@ -3,17 +3,36 @@ import shutil
 from datetime import datetime
 import time
 from .constants import MEDIA_EXT, PHOTO_EXT, VIDEO_EXT
-from .dates import get_exif_date, get_video_date, get_folder_date
+from .dates import (
+    get_exif_date, get_video_date, get_takeout_json_date, get_filename_date,
+    get_mtime_date, get_folder_date,
+)
 from .fsutil import unique_path
 from .scan_source import scan_source
 
-def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress, should_cancel=None):
+def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
+             should_cancel=None, use_mtime=True, use_filename_date=True):
     """
     Runs the sort. Talks to the caller only through callbacks:
       log(msg)               -> one line of text, for the live log view
       progress(done, total)  -> progress update
       should_cancel()        -> optional, polled between files; return True
                                 to stop early (files already copied are kept)
+
+    Date is resolved per file in this priority order (most to least
+    authoritative):
+      1. EXIF/XMP (photos, including HEIC) or creation_time via ffprobe
+         (videos) - metadata embedded by the camera/software itself
+      2. Google Photos Takeout sidecar JSON (photoTakenTime), if present -
+         Google's own record of the original capture time
+      3. Timestamp embedded in the filename itself (e.g. IMG_20230514_120000,
+         PXL_..., signal-2023-05-14-...), if use_filename_date - written by
+         the device at capture time, so it survives copies/renames
+      4. File's last-modified timestamp (mtime), if use_mtime - sturdy but
+         more easily disturbed than the above; deliberately not "date
+         created" (see dates.py for why)
+      5. Folder name YYYY-MM pattern, if use_folder_date - explicit but coarse
+      6. Copied to _NoEXIF_review for manual handling
 
     log_path is decided by the caller (the app knows where it wants logs
     to live - e.g. next to the script while developing, or in
@@ -51,11 +70,14 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress, sh
     logline(f"Destination folder:         {out_base}")
     logline(f"Pillow (EXIF) available:    {'yes' if have_pillow else 'NO - install with: pip install Pillow'}")
     logline(f"ffprobe (video dates):      {'yes' if have_ffprobe else 'NO - install with: brew install ffmpeg'}")
+    logline(f"Filename-timestamp fallback: {'enabled' if use_filename_date else 'disabled'}")
+    logline(f"File-modified-date fallback: {'enabled' if use_mtime else 'disabled'}")
     logline(f"Folder-name date fallback:  {'enabled' if use_folder_date else 'disabled'}")
     logline(f"Log file:                   {log_path}")
     logline("-" * 70)
 
-    stats = {"exif": 0, "folder": 0, "no_date": 0, "errors": 0, "scanned": 0, "skipped": 0, "cancelled": False}
+    stats = {"exif": 0, "takeout": 0, "filename": 0, "mtime": 0, "folder": 0,
+             "no_date": 0, "errors": 0, "scanned": 0, "skipped": 0, "cancelled": False}
     no_date_files = []
 
     scan = scan_source(src)
@@ -105,11 +127,29 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress, sh
                 if dt:
                     source = "exif"
 
+                if dt is None:
+                    dt = get_takeout_json_date(src_file)
+                    if dt:
+                        source = "takeout"
+                        logline(f"[TAKEOUT] {name} -> no metadata date, using Google Takeout sidecar JSON -> {dt:%Y-%m-%d %H:%M:%S}")
+
+                if dt is None and use_filename_date:
+                    dt = get_filename_date(name)
+                    if dt:
+                        source = "filename"
+                        logline(f"[FILENAME] {name} -> no metadata/sidecar date, using timestamp embedded in filename -> {dt:%Y-%m-%d %H:%M:%S}")
+
+                if dt is None and use_mtime:
+                    dt = get_mtime_date(src_file)
+                    if dt:
+                        source = "mtime"
+                        logline(f"[MTIME] {name} -> no metadata date, using file's last-modified date -> {dt:%Y-%m-%d %H:%M:%S}")
+
                 if dt is None and use_folder_date:
                     dt = get_folder_date(src_file)
                     if dt:
                         source = "folder"
-                        logline(f"[FOLDER-DATE] {name} -> no metadata date, using folder name pattern -> {dt:%Y-%m}")
+                        logline(f"[FOLDER-DATE] {name} -> no other date source, using folder name pattern -> {dt:%Y-%m}")
 
                 if dt is None:
                     os.makedirs(review_dir, exist_ok=True)
@@ -123,7 +163,7 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress, sh
                     os.makedirs(dest_dir, exist_ok=True)
                     target = unique_path(dest_dir, name)
                     shutil.copy2(src_file, target)
-                    stats["exif" if source == "exif" else "folder"] += 1
+                    stats[source] += 1
                     logline(f"[COPY] {name} -> {target}")
 
             except Exception as e:
@@ -139,14 +179,18 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress, sh
         logline("SORTING CANCELLED - partial results below")
     logline("SUMMARY")
     logline(f"  Media files scanned:             {stats['scanned']}")
-    logline(f"  Dated via EXIF/video metadata:   {stats['exif']}")
+    logline(f"  Dated via EXIF/XMP/video metadata: {stats['exif']}")
+    logline(f"  Dated via Google Takeout sidecar: {stats['takeout']}")
+    logline(f"  Dated via filename timestamp:    {stats['filename']}")
+    logline(f"  Dated via file's modified date:  {stats['mtime']}")
     logline(f"  Dated via folder name:           {stats['folder']}")
     logline(f"  No date found (sent to review):  {stats['no_date']}")
     logline(f"  Errors:                          {stats['errors']}")
     logline(f"  Non-media files skipped:         {stats['skipped']}")
     logline(f"  Time elapsed:                    {elapsed:.1f}s")
 
-    total_out = stats['exif'] + stats['folder'] + stats['no_date']
+    total_out = (stats['exif'] + stats['takeout'] + stats['filename']
+                 + stats['mtime'] + stats['folder'] + stats['no_date'])
     if total_out == stats['scanned'] - stats['errors']:
         logline("  VERIFICATION OK: file counts match.")
     else:

@@ -27,6 +27,9 @@ COLOR_LOG_BG = "#fcfcfd"
 COLOR_TEXT = "#1a1a1a"
 COLOR_MUTED = "#646464"
 COLOR_SIDEBAR_FUTURE_TEXT = "#9a9a9a"
+COLOR_PROGRESS_TRACK = "#E9E9EC"
+COLOR_PROGRESS_GRADIENT_TOP = "#EF9772"
+COLOR_PROGRESS_GRADIENT_BOTTOM = "#C96A4A"
 
 THEME_COLOR = COLOR_PRIMARY
 
@@ -45,9 +48,12 @@ QStackedWidget > QWidget {{
 
 QWidget#sidebarWidget {{
     background: {COLOR_BG};
-    border-right: 1px solid {COLOR_BORDER};
     min-width: 190px;
     max-width: 190px;
+}}
+
+QWidget#sidebarDivider {{
+    background: {COLOR_BORDER};
 }}
 
 QWidget#sidebarWidget QLabel#sidebarTitle {{
@@ -69,10 +75,10 @@ QWidget#sidebarWidget QPushButton {{
     border: none;
     background: transparent;
     color: {COLOR_SIDEBAR_FUTURE_TEXT};
-    padding: 9px 16px;
+    padding: 9px 14px;
     margin: 1px 10px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 11px;
 }}
 
 QWidget#sidebarWidget QPushButton[visited="true"] {{
@@ -83,6 +89,22 @@ QWidget#sidebarWidget QPushButton:checked {{
     background: {COLOR_PRIMARY};
     color: white;
     font-weight: 600;
+}}
+
+QPushButton#settingsButton {{
+    text-align: center;
+    background: white;
+    border: 1px solid {COLOR_BORDER};
+    border-radius: 6px;
+    color: {COLOR_MUTED};
+    font-size: 10px;
+    padding: 6px 10px;
+    margin: 8px 14px 16px 14px;
+}}
+QPushButton#settingsButton:hover {{
+    background: {COLOR_SECONDARY_HOVER_BG};
+    color: {COLOR_PRIMARY};
+    border-color: {COLOR_PRIMARY};
 }}
 
 QLabel {{
@@ -134,6 +156,26 @@ QLineEdit:focus {{
     border: 1px solid {COLOR_PRIMARY};
 }}
 
+QComboBox {{
+    border: 1px solid {COLOR_BORDER};
+    border-radius: 6px;
+    padding: 5px 8px;
+    background: white;
+    color: {COLOR_TEXT};
+    min-height: 20px;
+}}
+QComboBox:focus {{
+    border: 1px solid {COLOR_PRIMARY};
+}}
+QComboBox QAbstractItemView {{
+    border: 1px solid {COLOR_BORDER};
+    background: white;
+    color: {COLOR_TEXT};
+    selection-background-color: {COLOR_PRIMARY_HOVER_BG};
+    selection-color: {COLOR_PRIMARY};
+    outline: none;
+}}
+
 QCheckBox {{
     color: {COLOR_TEXT};
     font-size: 12px;
@@ -176,17 +218,18 @@ QPushButton[variant="secondary"]:disabled {{
 }}
 
 QProgressBar {{
-    border: 1px solid {COLOR_BORDER};
-    border-radius: 5px;
-    background: {COLOR_CARD_BG};
+    border: none;
+    border-radius: 4px;
+    background: {COLOR_PROGRESS_TRACK};
     text-align: center;
-    color: {COLOR_TEXT};
-    height: 16px;
-    font-size: 10px;
+    color: transparent;
+    min-height: 8px;
+    max-height: 8px;
 }}
 QProgressBar::chunk {{
-    background: {COLOR_PRIMARY};
-    border-radius: 5px;
+    border-radius: 4px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 {COLOR_PROGRESS_GRADIENT_TOP}, stop:0.55 {COLOR_PRIMARY}, stop:1 {COLOR_PROGRESS_GRADIENT_BOTTOM});
 }}
 
 QPlainTextEdit#logView {{

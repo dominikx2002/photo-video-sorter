@@ -1,5 +1,5 @@
 import sys
-from PySide6.QtWidgets import QApplication, QWidget, QHBoxLayout, QStackedWidget, QPushButton
+from PySide6.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget, QPushButton, QLabel
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, Qt
 from steps.step_welcome import WelcomeStep
@@ -7,7 +7,10 @@ from steps.step_scan import SourceStep
 from steps.step_destination import DestinationStep
 from steps.step_sorting import SortingStep
 from steps.step_summary import SummaryStep
+from steps.settings_dialog import SettingsDialog
 from sorter_logic.theme import apply_theme
+from sorter_logic.i18n import translator as tr
+from sorter_logic.settings_store import load_language
 from paths import resource_path
 
 
@@ -31,8 +34,22 @@ class WizardApp:
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
+        tr.set_language(load_language(), _emit=False)
+
         self.sidebar = load_ui("sidebar.ui")
         main_layout.addWidget(self.sidebar)
+
+        # A short vertical line inset from the top/bottom edges (not a full-height
+        # border) - matches the Raspberry Pi Imager's sidebar divider.
+        divider_container = QWidget()
+        divider_container.setFixedWidth(1)
+        divider_layout = QVBoxLayout(divider_container)
+        divider_layout.setContentsMargins(0, 20, 0, 20)
+        divider_layout.setSpacing(0)
+        divider_line = QWidget()
+        divider_line.setObjectName("sidebarDivider")
+        divider_layout.addWidget(divider_line)
+        main_layout.addWidget(divider_container)
 
         self.stack = QStackedWidget()
         main_layout.addWidget(self.stack)
@@ -61,6 +78,11 @@ class WizardApp:
             button.setAttribute(Qt.WA_TransparentForMouseEvents, True)
             button.setFocusPolicy(Qt.NoFocus)
 
+        self.sidebar_title = self.sidebar.findChild(QLabel, "sidebarTitle")
+        self.sidebar_subtitle = self.sidebar.findChild(QLabel, "sidebarSubtitle")
+        self.settings_btn = self.sidebar.findChild(QPushButton, "settingsButton")
+        self.settings_btn.clicked.connect(self.open_settings)
+
         self.completed_steps = set()
         self.current_step = 0
 
@@ -73,7 +95,26 @@ class WizardApp:
         self.sorting_step.back_requested.connect(lambda: self.goto(2))
         self.summary_step.start_new_requested.connect(self.on_start_new)
 
+        tr.language_changed.connect(self.retranslate)
+        self.retranslate()
+
         self.goto(0)
+
+    def open_settings(self):
+        SettingsDialog(self.main_window).exec()
+
+    def retranslate(self, *_):
+        self.sidebar_title.setText(tr.t("sidebar.title"))
+        self.sidebar_subtitle.setText(tr.t("sidebar.subtitle"))
+        self.sidebar_buttons[0].setText(tr.t("sidebar.welcome"))
+        self.sidebar_buttons[1].setText(tr.t("sidebar.source"))
+        self.sidebar_buttons[2].setText(tr.t("sidebar.destination"))
+        self.sidebar_buttons[3].setText(tr.t("sidebar.sorting"))
+        self.sidebar_buttons[4].setText(tr.t("sidebar.summary"))
+        self.settings_btn.setText(tr.t("sidebar.settings"))
+        for step in (self.welcome_step, self.source_step, self.destination_step,
+                     self.sorting_step, self.summary_step):
+            step.retranslate()
 
     def on_welcome_continue(self):
         self.completed_steps.add(0)
@@ -89,6 +130,7 @@ class WizardApp:
         self.sorting_step.set_context(
             source_data["src_path"], dest_data["dest_path"],
             dest_data["collection_name"], dest_data["use_folder_date"],
+            dest_data["use_mtime"], dest_data["use_filename_date"],
         )
         self.completed_steps.add(2)
         self.goto(3)

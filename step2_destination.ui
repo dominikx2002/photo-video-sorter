@@ -61,9 +61,29 @@
     </layout>
    </item>
    <item>
+    <widget class="QCheckBox" name="useFilenameDateCheckbox">
+     <property name="text">
+      <string>Use timestamp embedded in the filename (e.g. IMG_20230514_120000) when no metadata date is found</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="useMtimeCheckbox">
+     <property name="text">
+      <string>Use file's last-modified date when no metadata or filename date is found</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QCheckBox" name="useFolderDateCheckbox">
      <property name="text">
-      <string>Use folder name as date when no EXIF data is found</string>
+      <string>Use folder name as date when no other date source is found</string>
      </property>
      <property name="checked">
       <bool>true</bool>

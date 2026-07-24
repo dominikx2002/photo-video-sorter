@@ -7,6 +7,7 @@ from PySide6.QtCore import QFile, QThread, Signal, QObject
 from sorter_logic import scan_source
 from sorter_logic.constants import THEME_COLOR
 from sorter_logic.theme import mark_primary, mark_secondary
+from sorter_logic.i18n import translator as tr
 from paths import resource_path
 
 
@@ -54,9 +55,11 @@ class SourceStep(QObject):
         mark_secondary(self.scan_btn)
         mark_secondary(self.back_btn)
 
+        self.progress_bar.setTextVisible(False)
         self.progress_bar.hide()
 
         self.scan_result = None
+        self.folder_name = None
 
         self.choose_btn.clicked.connect(self.choose_folder)
         self.scan_btn.clicked.connect(self.scan_folder)
@@ -66,47 +69,65 @@ class SourceStep(QObject):
         self.thread = None
         self.worker = None
 
+        self.retranslate()
+
+    def retranslate(self):
+        self.title_label.setText(tr.t("source.title"))
+        self.subtitle_label.setText(tr.t("source.subtitle"))
+        self.choose_btn.setText(tr.t("source.choose_folder"))
+        self.scan_btn.setText(tr.t("source.scan_folder"))
+        self.continue_btn.setText(tr.t("common.next"))
+        self.back_btn.setText(tr.t("common.back"))
+        self._render_folder_label()
+        self._render_status_label()
+
+    def _render_folder_label(self):
+        if self.folder_name is None:
+            self.choose_folder_label.setText(tr.t("source.no_folder"))
+        else:
+            self.choose_folder_label.setText(
+                tr.t("source.selected_folder", color=THEME_COLOR, name=self.folder_name)
+            )
+
+    def _render_status_label(self):
+        if self.scan_result is None:
+            self.status_label.setText("")
+        elif self.scan_result["total"] == 0:
+            self.status_label.setText(tr.t("source.scan_none_found"))
+        else:
+            self.status_label.setText(tr.t(
+                "source.scan_found", color=THEME_COLOR,
+                total=self.scan_result["total"], folders=self.scan_result["folders"],
+            ))
+
     def get_data(self):
         return {"src_path": self.src_path_edit.text(), "scan_result": self.scan_result}
 
     def reset(self):
         self.scan_result = None
+        self.folder_name = None
         self.src_path_edit.setText("")
-        self.choose_folder_label.setText("No folder selected yet.")
-        self.status_label.setText("")
         self.scan_btn.setEnabled(False)
         self.continue_btn.setEnabled(False)
+        self._render_folder_label()
+        self._render_status_label()
 
     def choose_folder(self):
-        folder = QFileDialog.getExistingDirectory(self.window, "Select the folder to scan")
+        folder = QFileDialog.getExistingDirectory(self.window, tr.t("source.title"))
         if folder:
-            self.status_label.setText("")
+            self.scan_result = None
             self.src_path_edit.setText(folder)
-            folder_name = os.path.basename(os.path.normpath(folder))
-            self.choose_folder_label.setText(
-                f"Your selected folder is <span style=\"color: {THEME_COLOR}; font-weight: bold;\">"
-                f"\"{folder_name}\"</span>. Click \"Scan Folder\" to continue."
-            )
+            self.folder_name = os.path.basename(os.path.normpath(folder))
+            self._render_folder_label()
+            self._render_status_label()
             self.scan_btn.setEnabled(True)
             self.continue_btn.setEnabled(False)
-            self.scan_result = None
 
     def on_scan_finished(self, result):
         self.progress_bar.hide()
         self.scan_result = result
-        if result['total'] == 0:
-            self.status_label.setText(
-                "Scan completed. No media file(s) found in the selected folder. "
-                "Please select a different folder."
-            )
-            self.continue_btn.setEnabled(False)
-        else:
-            self.status_label.setText(
-                f"Scan completed. Found <span style=\"color: {THEME_COLOR}; font-weight: bold;\">"
-                f"{result['total']}</span> media file(s) across "
-                f"<span style=\"color: {THEME_COLOR}; font-weight: bold;\">{result['folders']}</span> folder(s)."
-            )
-            self.continue_btn.setEnabled(True)
+        self._render_status_label()
+        self.continue_btn.setEnabled(result["total"] != 0)
         self.scan_btn.setEnabled(True)
         self.thread.quit()
         self.thread.wait()

@@ -60,6 +60,9 @@
           <property name="text">
            <string>Files Scanned</string>
           </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
        </layout>
@@ -80,12 +83,84 @@
           <property name="text">
            <string>Dated via EXIF/Video</string>
           </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
        </layout>
       </widget>
      </item>
      <item row="0" column="2">
+      <widget class="QFrame" name="takeoutCard">
+       <layout class="QVBoxLayout" name="takeoutCardLayout">
+        <item>
+         <widget class="QLabel" name="takeoutNumberLabel">
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="takeoutCaptionLabel">
+          <property name="text">
+           <string>Dated via Google Takeout</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QFrame" name="filenameCard">
+       <layout class="QVBoxLayout" name="filenameCardLayout">
+        <item>
+         <widget class="QLabel" name="filenameNumberLabel">
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="filenameCaptionLabel">
+          <property name="text">
+           <string>Dated via Filename</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QFrame" name="mtimeCard">
+       <layout class="QVBoxLayout" name="mtimeCardLayout">
+        <item>
+         <widget class="QLabel" name="mtimeNumberLabel">
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="mtimeCaptionLabel">
+          <property name="text">
+           <string>Dated via File Date</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="1" column="2">
       <widget class="QFrame" name="folderCard">
        <layout class="QVBoxLayout" name="folderCardLayout">
         <item>
@@ -100,12 +175,15 @@
           <property name="text">
            <string>Dated via Folder Name</string>
           </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
        </layout>
       </widget>
      </item>
-     <item row="1" column="0">
+     <item row="2" column="0">
       <widget class="QFrame" name="nodateCard">
        <layout class="QVBoxLayout" name="nodateCardLayout">
         <item>
@@ -120,12 +198,15 @@
           <property name="text">
            <string>Needs Review (No Date)</string>
           </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
        </layout>
       </widget>
      </item>
-     <item row="1" column="1">
+     <item row="2" column="1">
       <widget class="QFrame" name="errorsCard">
        <layout class="QVBoxLayout" name="errorsCardLayout">
         <item>
@@ -140,12 +221,15 @@
           <property name="text">
            <string>Errors</string>
           </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
        </layout>
       </widget>
      </item>
-     <item row="1" column="2">
+     <item row="2" column="2">
       <widget class="QFrame" name="skippedCard">
        <layout class="QVBoxLayout" name="skippedCardLayout">
         <item>
@@ -159,6 +243,9 @@
          <widget class="QLabel" name="skippedCaptionLabel">
           <property name="text">
            <string>Non-Media Skipped</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
