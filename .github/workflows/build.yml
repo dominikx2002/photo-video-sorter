@@ -11,7 +11,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        # macos-latest is Apple Silicon (arm64) only - an arm64-only .app
+        # refuses to launch on an Intel Mac ("not supported on this Mac").
+        # Building on both macos-13 (Intel runner) and macos-14 (Apple
+        # Silicon runner) explicitly gives one artifact per architecture.
+        os: [macos-13, macos-14, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -33,14 +37,14 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           cd dist
-          zip -r -y ../PhotoVideoSorter-macOS.zip "Photo & Video Sorter.app"
+          zip -r -y "../PhotoVideoSorter-macOS-${{ runner.arch }}.zip" "Photo & Video Sorter.app"
 
       - name: Upload macOS artifact
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: PhotoVideoSorter-macOS
-          path: PhotoVideoSorter-macOS.zip
+          name: PhotoVideoSorter-macOS-${{ runner.arch }}
+          path: PhotoVideoSorter-macOS-${{ runner.arch }}.zip
 
       # ---------------- Windows ----------------
       - name: Package Windows portable zip
@@ -119,7 +123,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/PhotoVideoSorter-macOS/PhotoVideoSorter-macOS.zip
+            artifacts/PhotoVideoSorter-macOS-*/PhotoVideoSorter-macOS-*.zip
             artifacts/PhotoVideoSorter-Windows-portable/PhotoVideoSorter-Windows-portable.zip
             artifacts/PhotoVideoSorter-Windows-Setup/PhotoVideoSorter-Setup.exe
             artifacts/PhotoVideoSorter-Linux/PhotoVideoSorter-Linux-x86_64.AppImage
