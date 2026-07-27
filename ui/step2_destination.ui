@@ -6,80 +6,102 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>624</width>
-    <height>465</height>
+    <width>640</width>
+    <height>480</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="leftMargin">
-    <number>24</number>
-   </property>
-   <property name="topMargin">
-    <number>20</number>
-   </property>
-   <property name="rightMargin">
-    <number>24</number>
-   </property>
-   <property name="bottomMargin">
-    <number>18</number>
-   </property>
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Select Source Folder</string>
+      <string>Destination and Options</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>Choose the folder to scan...</string>
+      <string>Choose where sorted files will be saved.</string>
      </property>
     </widget>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QLineEdit" name="srcPathEdit">
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Collection name:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="collectionNameEdit"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLineEdit" name="destPathEdit">
        <property name="readOnly">
         <bool>true</bool>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="chooseFolderButton">
+      <widget class="QPushButton" name="chooseDestButton">
        <property name="text">
-        <string>Choose Folder</string>
+        <string>Choose destination folder</string>
        </property>
       </widget>
      </item>
     </layout>
    </item>
    <item>
-    <widget class="QLabel" name="chooseFolderLabel">
+    <widget class="QCheckBox" name="useFilenameDateCheckbox">
      <property name="text">
-      <string>No folder selected yet.</string>
+      <string>Use timestamp embedded in the filename (e.g. IMG_20230514_120000) when no metadata date is found</string>
      </property>
-     <property name="wordWrap">
+     <property name="checked">
       <bool>true</bool>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QProgressBar" name="scanProgressBar">
-     <property name="maximum">
-      <number>0</number>
+    <widget class="QCheckBox" name="useMtimeCheckbox">
+     <property name="text">
+      <string>Use file's last-modified date when no metadata or filename date is found</string>
      </property>
-     <property name="value">
-      <number>-1</number>
+     <property name="checked">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="statusLabel">
+    <widget class="QCheckBox" name="useFolderDateCheckbox">
+     <property name="text">
+      <string>Use folder name as date when no other date source is found</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="renameToDateCheckbox">
+     <property name="text">
+      <string>Rename files to their detected date (e.g. 2023-05-14 14.30.22.jpg)</string>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="pathPreviewLabel">
      <property name="text">
       <string/>
      </property>
@@ -102,7 +124,7 @@
     </spacer>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <layout class="QHBoxLayout" name="navLayout">
      <item>
       <widget class="QPushButton" name="backButton">
        <property name="text">
@@ -122,16 +144,6 @@
         </size>
        </property>
       </spacer>
-     </item>
-     <item>
-      <widget class="QPushButton" name="scanFolderButton">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="text">
-        <string>Scan Folder</string>
-       </property>
-      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="continueButton">

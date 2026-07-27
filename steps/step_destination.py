@@ -17,7 +17,7 @@ class DestinationStep(QObject):
         super().__init__()
 
         loader = QUiLoader()
-        ui_file = QFile(resource_path("step2_destination.ui"))
+        ui_file = QFile(resource_path("ui/step2_destination.ui"))
         ui_file.open(QFile.ReadOnly)
 
         self.window = loader.load(ui_file)
@@ -30,6 +30,7 @@ class DestinationStep(QObject):
         self.use_filename_date_checkbox = self.window.findChild(QCheckBox, "useFilenameDateCheckbox")
         self.use_mtime_checkbox = self.window.findChild(QCheckBox, "useMtimeCheckbox")
         self.use_folder_date_checkbox = self.window.findChild(QCheckBox, "useFolderDateCheckbox")
+        self.rename_to_date_checkbox = self.window.findChild(QCheckBox, "renameToDateCheckbox")
         self.path_preview_label = self.window.findChild(QLabel, "pathPreviewLabel")
         self.continue_btn = self.window.findChild(QPushButton, "continueButton")
         self.back_btn = self.window.findChild(QPushButton, "backButton")
@@ -43,6 +44,7 @@ class DestinationStep(QObject):
 
         self.choose_dest_btn.clicked.connect(self.choose_destination_folder)
         self.collection_name_edit.textChanged.connect(self.update_preview)
+        self.rename_to_date_checkbox.toggled.connect(self.update_preview)
         self.continue_btn.clicked.connect(self.continue_requested.emit)
         self.back_btn.clicked.connect(self.back_requested.emit)
 
@@ -59,6 +61,7 @@ class DestinationStep(QObject):
         self.use_filename_date_checkbox.setText(tr.t("destination.use_filename_date"))
         self.use_mtime_checkbox.setText(tr.t("destination.use_mtime"))
         self.use_folder_date_checkbox.setText(tr.t("destination.use_folder_date"))
+        self.rename_to_date_checkbox.setText(tr.t("destination.rename_to_date"))
         self.continue_btn.setText(tr.t("common.next"))
         self.back_btn.setText(tr.t("common.back"))
         self.update_preview()
@@ -70,6 +73,7 @@ class DestinationStep(QObject):
             "use_filename_date": self.use_filename_date_checkbox.isChecked(),
             "use_mtime": self.use_mtime_checkbox.isChecked(),
             "use_folder_date": self.use_folder_date_checkbox.isChecked(),
+            "rename_to_date": self.rename_to_date_checkbox.isChecked(),
         }
 
     def reset(self):
@@ -78,6 +82,7 @@ class DestinationStep(QObject):
         self.use_filename_date_checkbox.setChecked(True)
         self.use_mtime_checkbox.setChecked(True)
         self.use_folder_date_checkbox.setChecked(True)
+        self.rename_to_date_checkbox.setChecked(False)
         self.update_preview()
 
     def eventFilter(self, obj, event):
@@ -97,12 +102,17 @@ class DestinationStep(QObject):
     def update_preview(self):
         name = self.collection_name_edit.text()
         dest = os.path.normpath(self.dest_path_edit.text()) if self.dest_path_edit.text() else ""
+        example_file = "2023-05-14 14.30.22.jpg" if self.rename_to_date_checkbox.isChecked() else "photo.jpg"
 
         if dest:
             if name:
-                self.path_preview_label.setText(tr.t("destination.preview_with_name", dest=dest, name=name))
+                self.path_preview_label.setText(
+                    tr.t("destination.preview_with_name", dest=dest, name=name, file=example_file)
+                )
             else:
-                self.path_preview_label.setText(tr.t("destination.preview_no_name", dest=dest))
+                self.path_preview_label.setText(
+                    tr.t("destination.preview_no_name", dest=dest, file=example_file)
+                )
             self.continue_btn.setEnabled(True)
         else:
             self.path_preview_label.setText(tr.t("destination.preview_placeholder"))

@@ -2,6 +2,7 @@ import sys
 from PySide6.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget, QPushButton, QLabel
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, Qt
+from PySide6.QtGui import QIcon
 from steps.step_welcome import WelcomeStep
 from steps.step_scan import SourceStep
 from steps.step_destination import DestinationStep
@@ -27,6 +28,7 @@ class WizardApp:
         self.main_window = QWidget()
         self.main_window.setObjectName("mainWindow")
         self.main_window.setWindowTitle("Photo & Video Sorter")
+        self.main_window.setWindowIcon(QIcon(resource_path("packaging/icons/icon.png")))
         # Fixed, compact size - mirrors the real Raspberry Pi Imager's small,
         # non-resizable setup dialog rather than a freely resizable window.
         self.main_window.setFixedSize(700, 480)
@@ -36,7 +38,7 @@ class WizardApp:
 
         tr.set_language(load_language(), _emit=False)
 
-        self.sidebar = load_ui("sidebar.ui")
+        self.sidebar = load_ui("ui/sidebar.ui")
         main_layout.addWidget(self.sidebar)
 
         # A short vertical line inset from the top/bottom edges (not a full-height
@@ -131,6 +133,7 @@ class WizardApp:
             source_data["src_path"], dest_data["dest_path"],
             dest_data["collection_name"], dest_data["use_folder_date"],
             dest_data["use_mtime"], dest_data["use_filename_date"],
+            source_data["allowed_extensions"], dest_data["rename_to_date"],
         )
         self.completed_steps.add(2)
         self.goto(3)
@@ -166,6 +169,7 @@ class WizardApp:
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(resource_path("packaging/icons/icon.png")))
     apply_theme(app)
 
     wizard = WizardApp()

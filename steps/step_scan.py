@@ -8,19 +8,22 @@ from sorter_logic import scan_source
 from sorter_logic.constants import THEME_COLOR
 from sorter_logic.theme import mark_primary, mark_secondary
 from sorter_logic.i18n import translator as tr
+from sorter_logic.settings_store import load_enabled_extensions
+from steps.file_types_dialog import FileTypesDialog
 from paths import resource_path
 
 
 class ScanWorker(QObject):
     finished = Signal(dict)
 
-    def __init__(self, path):
+    def __init__(self, path, allowed_extensions):
         super().__init__()
         self.path = path
+        self.allowed_extensions = allowed_extensions
 
     def run(self):
         time.sleep(1)
-        result = scan_source(self.path)
+        result = scan_source(self.path, self.allowed_extensions)
         self.finished.emit(result)
 
 
@@ -32,7 +35,7 @@ class SourceStep(QObject):
         super().__init__()
 
         loader = QUiLoader()
-        ui_file = QFile(resource_path("step1_source.ui"))
+        ui_file = QFile(resource_path("ui/step1_source.ui"))
         ui_file.open(QFile.ReadOnly)
 
         self.window = loader.load(ui_file)
@@ -46,6 +49,7 @@ class SourceStep(QObject):
         self.status_label = self.window.findChild(QLabel, "statusLabel")
         self.continue_btn = self.window.findChild(QPushButton, "continueButton")
         self.back_btn = self.window.findChild(QPushButton, "backButton")
+        self.file_types_btn = self.window.findChild(QPushButton, "fileTypesButton")
 
         self.title_label.setProperty("heading", "true")
         self.subtitle_label.setProperty("subheading", "true")
@@ -54,6 +58,7 @@ class SourceStep(QObject):
         mark_secondary(self.choose_btn)
         mark_secondary(self.scan_btn)
         mark_secondary(self.back_btn)
+        mark_secondary(self.file_types_btn)
 
         self.progress_bar.setTextVisible(False)
         self.progress_bar.hide()
@@ -65,6 +70,7 @@ class SourceStep(QObject):
         self.scan_btn.clicked.connect(self.scan_folder)
         self.continue_btn.clicked.connect(self.continue_requested.emit)
         self.back_btn.clicked.connect(self.back_requested.emit)
+        self.file_types_btn.clicked.connect(self.open_file_types)
 
         self.thread = None
         self.worker = None
@@ -78,6 +84,7 @@ class SourceStep(QObject):
         self.scan_btn.setText(tr.t("source.scan_folder"))
         self.continue_btn.setText(tr.t("common.next"))
         self.back_btn.setText(tr.t("common.back"))
+        self.file_types_btn.setText(tr.t("source.file_types"))
         self._render_folder_label()
         self._render_status_label()
 
@@ -101,7 +108,20 @@ class SourceStep(QObject):
             ))
 
     def get_data(self):
-        return {"src_path": self.src_path_edit.text(), "scan_result": self.scan_result}
+        return {
+            "src_path": self.src_path_edit.text(),
+            "scan_result": self.scan_result,
+            "allowed_extensions": load_enabled_extensions(),
+        }
+
+    def open_file_types(self):
+        dialog = FileTypesDialog(self.window)
+        if dialog.exec() and self.scan_result is not None:
+            # File-type selection changed after a scan already ran - the old
+            # counts no longer reflect what would actually be sorted.
+            self.scan_result = None
+            self.continue_btn.setEnabled(False)
+            self._render_status_label()
 
     def reset(self):
         self.scan_result = None
@@ -141,7 +161,7 @@ class SourceStep(QObject):
         self.progress_bar.show()
 
         self.thread = QThread()
-        self.worker = ScanWorker(path)
+        self.worker = ScanWorker(path, load_enabled_extensions())
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)

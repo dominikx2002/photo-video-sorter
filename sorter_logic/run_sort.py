@@ -11,7 +11,8 @@ from .fsutil import unique_path
 from .scan_source import scan_source
 
 def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
-             should_cancel=None, use_mtime=True, use_filename_date=True):
+             should_cancel=None, use_mtime=True, use_filename_date=True,
+             allowed_extensions=None, rename_to_date=False):
     """
     Runs the sort. Talks to the caller only through callbacks:
       log(msg)               -> one line of text, for the live log view
@@ -42,6 +43,7 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
     should_cancel() stopped the run before every file was processed.
     """
     start_time = time.time()
+    allowed = allowed_extensions if allowed_extensions is not None else MEDIA_EXT
 
     have_pillow = True
     try:
@@ -73,6 +75,7 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
     logline(f"Filename-timestamp fallback: {'enabled' if use_filename_date else 'disabled'}")
     logline(f"File-modified-date fallback: {'enabled' if use_mtime else 'disabled'}")
     logline(f"Folder-name date fallback:  {'enabled' if use_folder_date else 'disabled'}")
+    logline(f"Rename files to their date:  {'enabled' if rename_to_date else 'disabled'}")
     logline(f"Log file:                   {log_path}")
     logline("-" * 70)
 
@@ -80,7 +83,7 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
              "no_date": 0, "errors": 0, "scanned": 0, "skipped": 0, "cancelled": False}
     no_date_files = []
 
-    scan = scan_source(src)
+    scan = scan_source(src, allowed)
     total = scan["total"]
     logline(f"Pre-scan complete: {total} media file(s) found across {scan['folders']} folder(s).")
     if scan["by_ext"]:
@@ -103,9 +106,12 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
             ext = os.path.splitext(name)[1].lower()
             src_file = os.path.join(dirpath, name)
 
-            if ext not in MEDIA_EXT:
+            if ext not in allowed:
                 stats["skipped"] += 1
-                logline(f"[SKIP] Not a recognized media file, ignored: {src_file}")
+                if ext in MEDIA_EXT:
+                    logline(f"[SKIP] Extension excluded by file-type filter: {src_file}")
+                else:
+                    logline(f"[SKIP] Not a recognized media file, ignored: {src_file}")
                 continue
 
             stats["scanned"] += 1
@@ -161,7 +167,11 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
                 else:
                     dest_dir = os.path.join(out_base, f"{dt.year:04d}", f"{dt.year:04d}-{dt.month:02d}")
                     os.makedirs(dest_dir, exist_ok=True)
-                    target = unique_path(dest_dir, name)
+                    copy_name = name
+                    if rename_to_date:
+                        copy_name = f"{dt:%Y-%m-%d %H.%M.%S}{ext}"
+                        logline(f"[RENAME] {name} -> {copy_name}")
+                    target = unique_path(dest_dir, copy_name)
                     shutil.copy2(src_file, target)
                     stats[source] += 1
                     logline(f"[COPY] {name} -> {target}")

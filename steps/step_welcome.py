@@ -14,7 +14,7 @@ class WelcomeStep(QObject):
         super().__init__()
 
         loader = QUiLoader()
-        ui_file = QFile(resource_path("step0_welcome.ui"))
+        ui_file = QFile(resource_path("ui/step0_welcome.ui"))
         ui_file.open(QFile.ReadOnly)
 
         self.window = loader.load(ui_file)

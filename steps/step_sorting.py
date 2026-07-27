@@ -17,6 +17,7 @@ LOG_COLORS = {
     "[TAKEOUT]": "#2A6FB0",
     "[FILENAME]": "#6C5CE7",
     "[MTIME]": "#2FA39B",
+    "[RENAME]": "#6C5CE7",
     "[FOLDER-DATE]": COLOR_ORANGE,
     "[NO DATE]": COLOR_ORANGE,
     "[ERROR]": COLOR_PRIMARY,
@@ -50,7 +51,7 @@ class SortWorker(QObject):
     error = Signal(str)
 
     def __init__(self, parent_name, src, dst, use_folder_date, log_path, should_cancel=None,
-                 use_mtime=True, use_filename_date=True):
+                 use_mtime=True, use_filename_date=True, allowed_extensions=None, rename_to_date=False):
         super().__init__()
         self.parent_name = parent_name
         self.src = src
@@ -58,6 +59,8 @@ class SortWorker(QObject):
         self.use_folder_date = use_folder_date
         self.use_mtime = use_mtime
         self.use_filename_date = use_filename_date
+        self.allowed_extensions = allowed_extensions
+        self.rename_to_date = rename_to_date
         self.log_path = log_path
         self.should_cancel = should_cancel
 
@@ -68,6 +71,8 @@ class SortWorker(QObject):
                 self.log_path, self.log_line.emit, self.progress.emit,
                 should_cancel=self.should_cancel, use_mtime=self.use_mtime,
                 use_filename_date=self.use_filename_date,
+                allowed_extensions=self.allowed_extensions,
+                rename_to_date=self.rename_to_date,
             )
             self.finished.emit(stats, log_path)
         except Exception as e:
@@ -82,7 +87,7 @@ class SortingStep(QObject):
         super().__init__()
 
         loader = QUiLoader()
-        ui_file = QFile(resource_path("step3_sorting.ui"))
+        ui_file = QFile(resource_path("ui/step3_sorting.ui"))
         ui_file.open(QFile.ReadOnly)
 
         self.window = loader.load(ui_file)
@@ -149,9 +154,10 @@ class SortingStep(QObject):
         filename_fallback = tr.t("sorting.fallback_on") if self.context["use_filename_date"] else tr.t("sorting.fallback_off")
         mtime_fallback = tr.t("sorting.fallback_on") if self.context["use_mtime"] else tr.t("sorting.fallback_off")
         fallback = tr.t("sorting.fallback_on") if self.context["use_folder_date"] else tr.t("sorting.fallback_off")
+        rename = tr.t("sorting.fallback_on") if self.context["rename_to_date"] else tr.t("sorting.fallback_off")
         self.summary_label.setText(tr.t(
             "sorting.summary", src=src_path, dst=dst, filename_fallback=filename_fallback,
-            mtime_fallback=mtime_fallback, fallback=fallback,
+            mtime_fallback=mtime_fallback, fallback=fallback, rename=rename,
         ))
 
     def _render_progress_label(self):
@@ -166,7 +172,8 @@ class SortingStep(QObject):
             self.progress_label.setText(tr.t(f"sorting.{state[0]}"))
 
     def set_context(self, src_path, dest_path, collection_name, use_folder_date,
-                     use_mtime=True, use_filename_date=True):
+                     use_mtime=True, use_filename_date=True, allowed_extensions=None,
+                     rename_to_date=False):
         self.context = {
             "src_path": src_path,
             "dest_path": dest_path,
@@ -174,6 +181,8 @@ class SortingStep(QObject):
             "use_folder_date": use_folder_date,
             "use_mtime": use_mtime,
             "use_filename_date": use_filename_date,
+            "allowed_extensions": allowed_extensions,
+            "rename_to_date": rename_to_date,
         }
         self._render_summary_label()
         self._reset_ui()
@@ -227,6 +236,8 @@ class SortingStep(QObject):
             should_cancel=self.thread.isInterruptionRequested,
             use_mtime=self.context["use_mtime"],
             use_filename_date=self.context["use_filename_date"],
+            allowed_extensions=self.context["allowed_extensions"],
+            rename_to_date=self.context["rename_to_date"],
         )
         self.worker.moveToThread(self.thread)
 

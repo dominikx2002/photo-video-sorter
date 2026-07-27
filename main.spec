@@ -6,12 +6,13 @@ import sys
 APP_NAME = "PhotoVideoSorter"
 
 ui_files = [
-    ("sidebar.ui", "."),
-    ("step0_welcome.ui", "."),
-    ("step1_source.ui", "."),
-    ("step2_destination.ui", "."),
-    ("step3_sorting.ui", "."),
-    ("step4_summary.ui", "."),
+    ("ui/sidebar.ui", "ui"),
+    ("ui/step0_welcome.ui", "ui"),
+    ("ui/step1_source.ui", "ui"),
+    ("ui/step2_destination.ui", "ui"),
+    ("ui/step3_sorting.ui", "ui"),
+    ("ui/step4_summary.ui", "ui"),
+    ("packaging/icons/icon.png", "packaging/icons"),
 ]
 
 a = Analysis(
@@ -38,6 +39,7 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,
+    icon="packaging/icons/icon.ico" if sys.platform == "win32" else None,
 )
 
 coll = COLLECT(
@@ -53,6 +55,7 @@ if sys.platform == "darwin":
     app = BUNDLE(
         coll,
         name="Photo & Video Sorter.app",
+        icon="packaging/icons/icon.icns",
         bundle_identifier="com.dominikserafin.photovideosorter",
         info_plist={
             "NSHighResolutionCapable": True,

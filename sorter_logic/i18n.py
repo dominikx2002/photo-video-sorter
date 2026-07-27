@@ -52,6 +52,7 @@ TRANSLATIONS = {
             '{total}</span> media file(s) across '
             '<span style="color: {color}; font-weight: bold;">{folders}</span> folder(s).'
         ),
+        "source.file_types": "File Types...",
 
         "destination.title": "Destination and Options",
         "destination.subtitle": "Choose where sorted files will be saved.",
@@ -60,13 +61,21 @@ TRANSLATIONS = {
         "destination.use_filename_date": "Use the timestamp embedded in the filename when no metadata date is found",
         "destination.use_mtime": "Use file's last-modified date when no metadata or filename date is found",
         "destination.use_folder_date": "Use folder name as date when no other date source is found",
+        "destination.rename_to_date": "Rename files to their detected date (e.g. 2023-05-14 14.30.22.jpg)",
         "destination.preview_placeholder": "Destination path will appear here.",
-        "destination.preview_with_name": "Your files will be organized like this:\n{dest}/{name}/YYYY/YYYY-MM/",
-        "destination.preview_no_name": "Your files will be organized like this:\n{dest}/YYYY/YYYY-MM/",
+        "destination.preview_with_name": "Your files will be organized like this:\n{dest}/{name}/YYYY/YYYY-MM/{file}",
+        "destination.preview_no_name": "Your files will be organized like this:\n{dest}/YYYY/YYYY-MM/{file}",
+
+        "filetypes.title": "File Types",
+        "filetypes.subtitle": "Choose which file extensions to scan for.",
+        "filetypes.photos": "Photos",
+        "filetypes.videos": "Videos",
+        "filetypes.select_all": "Select All",
+        "filetypes.select_none": "Select None",
 
         "sorting.title": "Sorting Files",
         "sorting.subtitle": "Copying files into year/month folders. Originals are never modified or deleted.",
-        "sorting.summary": "Source: {src}\nDestination: {dst}\nFilename-timestamp fallback: {filename_fallback}\nFile-date fallback: {mtime_fallback}\nFolder-name fallback: {fallback}",
+        "sorting.summary": "Source: {src}\nDestination: {dst}\nFilename-timestamp fallback: {filename_fallback}\nFile-date fallback: {mtime_fallback}\nFolder-name fallback: {fallback}\nRename to date: {rename}",
         "sorting.fallback_on": "on",
         "sorting.fallback_off": "off",
         "sorting.start": "Start Sorting",
@@ -149,6 +158,7 @@ TRANSLATIONS = {
             '{total}</span> plik(\u00f3w) multimedialnych w '
             '<span style="color: {color}; font-weight: bold;">{folders}</span> folderze/folderach.'
         ),
+        "source.file_types": "Typy plik\u00f3w...",
 
         "destination.title": "Miejsce docelowe i opcje",
         "destination.subtitle": "Wybierz, gdzie zostan\u0105 zapisane posortowane pliki.",
@@ -157,13 +167,21 @@ TRANSLATIONS = {
         "destination.use_filename_date": "U\u017cyj znacznika czasu z nazwy pliku, gdy brak daty w metadanych",
         "destination.use_mtime": "U\u017cyj daty modyfikacji pliku, gdy brak daty w metadanych lub nazwie pliku",
         "destination.use_folder_date": "U\u017cyj nazwy folderu jako daty, gdy brak innego \u017ar\u00f3d\u0142a daty",
+        "destination.rename_to_date": "Zmie\u0144 nazwy plik\u00f3w na wykryt\u0105 dat\u0119 (np. 2023-05-14 14.30.22.jpg)",
         "destination.preview_placeholder": "Tutaj pojawi si\u0119 \u015bcie\u017cka docelowa.",
-        "destination.preview_with_name": "Twoje pliki zostan\u0105 zorganizowane w ten spos\u00f3b:\n{dest}/{name}/RRRR/RRRR-MM/",
-        "destination.preview_no_name": "Twoje pliki zostan\u0105 zorganizowane w ten spos\u00f3b:\n{dest}/RRRR/RRRR-MM/",
+        "destination.preview_with_name": "Twoje pliki zostan\u0105 zorganizowane w ten spos\u00f3b:\n{dest}/{name}/RRRR/RRRR-MM/{file}",
+        "destination.preview_no_name": "Twoje pliki zostan\u0105 zorganizowane w ten spos\u00f3b:\n{dest}/RRRR/RRRR-MM/{file}",
+
+        "filetypes.title": "Typy plik\u00f3w",
+        "filetypes.subtitle": "Wybierz, kt\u00f3rych rozszerze\u0144 plik\u00f3w szuka\u0107 podczas skanowania.",
+        "filetypes.photos": "Zdj\u0119cia",
+        "filetypes.videos": "Filmy",
+        "filetypes.select_all": "Zaznacz wszystko",
+        "filetypes.select_none": "Odznacz wszystko",
 
         "sorting.title": "Sortowanie plik\u00f3w",
         "sorting.subtitle": "Kopiowanie plik\u00f3w do folder\u00f3w rok/miesi\u0105c. Orygina\u0142y nigdy nie s\u0105 modyfikowane ani usuwane.",
-        "sorting.summary": "\u0179r\u00f3d\u0142o: {src}\nCel: {dst}\nData z nazwy pliku: {filename_fallback}\nData modyfikacji pliku: {mtime_fallback}\nDaty z nazwy folderu: {fallback}",
+        "sorting.summary": "\u0179r\u00f3d\u0142o: {src}\nCel: {dst}\nData z nazwy pliku: {filename_fallback}\nData modyfikacji pliku: {mtime_fallback}\nDaty z nazwy folderu: {fallback}\nZmiana nazwy na dat\u0119: {rename}",
         "sorting.fallback_on": "w\u0142\u0105czone",
         "sorting.fallback_off": "wy\u0142\u0105czone",
         "sorting.start": "Rozpocznij sortowanie",

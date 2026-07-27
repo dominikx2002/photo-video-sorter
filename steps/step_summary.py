@@ -23,7 +23,7 @@ class SummaryStep(QObject):
         super().__init__()
 
         loader = QUiLoader()
-        ui_file = QFile(resource_path("step4_summary.ui"))
+        ui_file = QFile(resource_path("ui/step4_summary.ui"))
         ui_file.open(QFile.ReadOnly)
 
         self.window = loader.load(ui_file)

@@ -78,8 +78,8 @@ jobs:
           Categories=Utility;
           EOF
 
-          python3 -c "from PIL import Image; Image.new('RGB', (256, 256), '#D97757').save('AppDir/photovideosorter.png')"
-          cp AppDir/photovideosorter.png AppDir/.DirIcon
+          cp packaging/icons/icon.png AppDir/photovideosorter.png
+          cp packaging/icons/icon.png AppDir/.DirIcon
 
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
