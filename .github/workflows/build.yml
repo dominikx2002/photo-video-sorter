@@ -11,11 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-latest is Apple Silicon (arm64) only - an arm64-only .app
-        # refuses to launch on an Intel Mac ("not supported on this Mac").
-        # Building on both macos-13 (Intel runner) and macos-14 (Apple
-        # Silicon runner) explicitly gives one artifact per architecture.
-        os: [macos-13, macos-14, windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -31,20 +27,6 @@ jobs:
 
       - name: Build with PyInstaller
         run: pyinstaller main.spec --noconfirm
-
-      # ---------------- macOS ----------------
-      - name: Package macOS .app
-        if: runner.os == 'macOS'
-        run: |
-          cd dist
-          zip -r -y "../PhotoVideoSorter-macOS-${{ runner.arch }}.zip" "Photo & Video Sorter.app"
-
-      - name: Upload macOS artifact
-        if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
-        with:
-          name: PhotoVideoSorter-macOS-${{ runner.arch }}
-          path: PhotoVideoSorter-macOS-${{ runner.arch }}.zip
 
       # ---------------- Windows ----------------
       - name: Package Windows portable zip
@@ -110,8 +92,67 @@ jobs:
           name: PhotoVideoSorter-Linux
           path: PhotoVideoSorter-Linux-x86_64.AppImage
 
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x86_64]
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      # python.org's macOS installer is a universal2 (fat) binary containing
+      # both arm64 and x86_64 slices - one install serves both legs of this
+      # matrix. This sidesteps GitHub's separate Intel-Mac runner pool
+      # (macos-13), which has very limited capacity now that GitHub is
+      # winding down Intel hardware, and can queue for a long time or never
+      # get picked up at all. Running the x86_64 leg via `arch -x86_64`
+      # emulates Intel through Rosetta 2 (preinstalled on macos-14 runners),
+      # and pip automatically resolves architecture-specific wheels (e.g.
+      # Pillow, which has no universal2 wheel) based on which slice is
+      # actually running.
+      - name: Install universal2 Python
+        run: |
+          curl -fsSL -o python.pkg https://www.python.org/ftp/python/3.11.9/python-3.11.9-macos11.pkg
+          sudo installer -pkg python.pkg -target /
+          echo "/Library/Frameworks/Python.framework/Versions/3.11/bin" >> "$GITHUB_PATH"
+
+      - name: Install Rosetta 2 (for the x86_64 leg)
+        if: matrix.arch == 'x86_64'
+        run: softwareupdate --install-rosetta --agree-to-license || true
+
+      - name: Pick architecture-appropriate python command
+        run: |
+          if [ "${{ matrix.arch }}" = "x86_64" ]; then
+            echo "PYTHON=arch -x86_64 python3" >> "$GITHUB_ENV"
+          else
+            echo "PYTHON=python3" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install dependencies
+        run: |
+          $PYTHON -m pip install --upgrade pip
+          $PYTHON -m pip install -r requirements.txt pyinstaller
+
+      - name: Build with PyInstaller
+        run: $PYTHON -m PyInstaller main.spec --noconfirm
+
+      - name: Verify built binary architecture
+        run: file "dist/Photo & Video Sorter.app/Contents/MacOS/PhotoVideoSorter"
+
+      - name: Package macOS .app
+        run: |
+          cd dist
+          zip -r -y "../PhotoVideoSorter-macOS-${{ matrix.arch }}.zip" "Photo & Video Sorter.app"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotoVideoSorter-macOS-${{ matrix.arch }}
+          path: PhotoVideoSorter-macOS-${{ matrix.arch }}.zip
+
   release:
-    needs: build
+    needs: [build, build-macos]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
