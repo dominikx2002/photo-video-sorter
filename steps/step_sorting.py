@@ -2,7 +2,7 @@ import sys
 import os
 import html
 from datetime import datetime
-from PySide6.QtWidgets import QApplication, QPushButton, QLabel, QProgressBar, QPlainTextEdit, QWidget
+from PySide6.QtWidgets import QApplication, QPushButton, QLabel, QProgressBar, QPlainTextEdit, QWidget, QGraphicsOpacityEffect
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QThread, Signal, QObject, QPropertyAnimation, QEasingCurve
 from sorter_logic import run_sort
@@ -47,6 +47,7 @@ def get_log_path(parent_name):
 class SortWorker(QObject):
     log_line = Signal(str)
     progress = Signal(int, int)
+    current_file = Signal(str)
     finished = Signal(dict, str)
     error = Signal(str)
 
@@ -73,6 +74,7 @@ class SortWorker(QObject):
                 use_filename_date=self.use_filename_date,
                 allowed_extensions=self.allowed_extensions,
                 rename_to_date=self.rename_to_date,
+                on_file=self.current_file.emit,
             )
             self.finished.emit(stats, log_path)
         except Exception as e:
@@ -97,6 +99,7 @@ class SortingStep(QObject):
         self.start_btn = self.window.findChild(QPushButton, "startButton")
         self.progress_bar = self.window.findChild(QProgressBar, "sortProgressBar")
         self.progress_label = self.window.findChild(QLabel, "progressLabel")
+        self.current_file_label = self.window.findChild(QLabel, "currentFileLabel")
         self.log_view = self.window.findChild(QPlainTextEdit, "logView")
         self.log_view.setObjectName("logView")
         self.pre_start_spacer = self.window.findChild(QWidget, "preStartSpacer")
@@ -108,6 +111,7 @@ class SortingStep(QObject):
         self.subtitle_label.setProperty("subheading", "true")
         self.summary_label.setProperty("muted", "true")
         self.progress_label.setProperty("muted", "true")
+        self.current_file_label.setProperty("muted", "true")
         mark_primary(self.start_btn)
         mark_primary(self.continue_btn)
         mark_secondary(self.back_btn)
@@ -117,6 +121,22 @@ class SortingStep(QObject):
         self.progress_anim = QPropertyAnimation(self.progress_bar, b"value", self)
         self.progress_anim.setDuration(250)
         self.progress_anim.setEasingCurve(QEasingCurve.OutCubic)
+
+        # A slow, continuous opacity pulse on the "currently copying" label -
+        # so even when the same large file is copying for a long stretch
+        # (no new progress/log events firing), something is visibly still
+        # moving and the app doesn't look frozen. Using keyframes for a
+        # smooth 1.0 -> 0.4 -> 1.0 "breathing" triangle wave, rather than
+        # start/end values, so consecutive loops connect without a snap.
+        self._current_file_opacity = QGraphicsOpacityEffect(self.current_file_label)
+        self.current_file_label.setGraphicsEffect(self._current_file_opacity)
+        self.pulse_anim = QPropertyAnimation(self._current_file_opacity, b"opacity", self)
+        self.pulse_anim.setDuration(1400)
+        self.pulse_anim.setKeyValueAt(0.0, 1.0)
+        self.pulse_anim.setKeyValueAt(0.5, 0.4)
+        self.pulse_anim.setKeyValueAt(1.0, 1.0)
+        self.pulse_anim.setEasingCurve(QEasingCurve.InOutSine)
+        self.pulse_anim.setLoopCount(-1)
 
         self.start_btn.clicked.connect(self.start_sorting)
         self.continue_btn.clicked.connect(self.continue_requested.emit)
@@ -129,6 +149,7 @@ class SortingStep(QObject):
         self.log_path = None
         self.context = None
         self._progress_state = None
+        self._current_file_name = None
 
         self._reset_ui()
         self.retranslate()
@@ -142,6 +163,7 @@ class SortingStep(QObject):
         self.back_btn.setText(tr.t("common.back"))
         self._render_summary_label()
         self._render_progress_label()
+        self._render_current_file_label()
 
     def _render_summary_label(self):
         if not self.context:
@@ -171,6 +193,12 @@ class SortingStep(QObject):
         else:
             self.progress_label.setText(tr.t(f"sorting.{state[0]}"))
 
+    def _render_current_file_label(self):
+        if self._current_file_name:
+            self.current_file_label.setText(tr.t("sorting.current_file", name=self._current_file_name))
+        else:
+            self.current_file_label.setText("")
+
     def set_context(self, src_path, dest_path, collection_name, use_folder_date,
                      use_mtime=True, use_filename_date=True, allowed_extensions=None,
                      rename_to_date=False):
@@ -199,6 +227,7 @@ class SortingStep(QObject):
         self.stats = None
         self.log_path = None
         self._progress_state = None
+        self._current_file_name = None
         self.start_btn.show()
         self.start_btn.setEnabled(True)
         self.pre_start_spacer.show()
@@ -207,6 +236,9 @@ class SortingStep(QObject):
         self.progress_bar.setValue(0)
         self.progress_label.hide()
         self._render_progress_label()
+        self.pulse_anim.stop()
+        self.current_file_label.hide()
+        self._render_current_file_label()
         self.log_view.hide()
         self.log_view.clear()
         self.continue_btn.setEnabled(False)
@@ -222,6 +254,8 @@ class SortingStep(QObject):
         self.pre_start_spacer.hide()
         self.progress_bar.show()
         self.progress_label.show()
+        self.current_file_label.show()
+        self.pulse_anim.start()
         self.log_view.show()
         self.back_btn.setEnabled(False)
         self.cancel_btn.show()
@@ -244,6 +278,7 @@ class SortingStep(QObject):
         self.thread.started.connect(self.worker.run)
         self.worker.log_line.connect(self.append_log)
         self.worker.progress.connect(self.on_progress)
+        self.worker.current_file.connect(self.on_current_file)
         self.worker.finished.connect(self.on_finished)
         self.worker.error.connect(self.on_error)
 
@@ -258,6 +293,10 @@ class SortingStep(QObject):
         self._progress_state = ("progress", done, total)
         self._render_progress_label()
 
+    def on_current_file(self, name):
+        self._current_file_name = name
+        self._render_current_file_label()
+
     def cancel_sorting(self):
         if self.thread:
             self.thread.requestInterruption()
@@ -270,6 +309,10 @@ class SortingStep(QObject):
         self.log_path = log_path
         self._progress_state = ("cancelled",) if stats.get("cancelled") else ("complete",)
         self._render_progress_label()
+        self.pulse_anim.stop()
+        self._current_file_name = None
+        self._render_current_file_label()
+        self.current_file_label.hide()
         self.cancel_btn.hide()
         self.continue_btn.setEnabled(True)
         self.back_btn.setEnabled(True)
@@ -280,6 +323,10 @@ class SortingStep(QObject):
         self.append_log(f"[ERROR] {message}")
         self._progress_state = ("failed",)
         self._render_progress_label()
+        self.pulse_anim.stop()
+        self._current_file_name = None
+        self._render_current_file_label()
+        self.current_file_label.hide()
         self.cancel_btn.hide()
         self.back_btn.setEnabled(True)
         self.thread.quit()

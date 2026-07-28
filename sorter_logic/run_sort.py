@@ -12,11 +12,15 @@ from .scan_source import scan_source
 
 def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
              should_cancel=None, use_mtime=True, use_filename_date=True,
-             allowed_extensions=None, rename_to_date=False):
+             allowed_extensions=None, rename_to_date=False, on_file=None):
     """
     Runs the sort. Talks to the caller only through callbacks:
       log(msg)               -> one line of text, for the live log view
       progress(done, total)  -> progress update
+      on_file(name)          -> optional, called right before a file starts
+                                being processed (metadata reads + copy) - lets
+                                the UI show what's happening during a slow
+                                single-file copy, rather than looking frozen
       should_cancel()        -> optional, polled between files; return True
                                 to stop early (files already copied are kept)
 
@@ -115,6 +119,8 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
                 continue
 
             stats["scanned"] += 1
+            if on_file:
+                on_file(name)
             try:
                 dt, source = None, None
 

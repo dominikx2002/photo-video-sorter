@@ -123,6 +123,8 @@ class WizardApp:
         self.goto(1)
 
     def on_source_continue(self):
+        scan_result = self.source_step.get_data()["scan_result"]
+        self.destination_step.set_required_size(scan_result["total_size"] if scan_result else 0)
         self.completed_steps.add(1)
         self.goto(2)
 

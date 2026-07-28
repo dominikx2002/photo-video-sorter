@@ -91,6 +91,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QLabel" name="currentFileLabel">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QPlainTextEdit" name="logView">
      <property name="readOnly">
       <bool>true</bool>

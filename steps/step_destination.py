@@ -1,12 +1,14 @@
 import sys
 import time
 import os
+import shutil
 from PySide6.QtWidgets import QApplication, QPushButton, QLineEdit, QFileDialog, QLabel, QCheckBox
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QObject, QEvent, Signal
 from sorter_logic.constants import THEME_COLOR
-from sorter_logic.theme import mark_primary, mark_secondary
+from sorter_logic.theme import mark_primary, mark_secondary, COLOR_GREEN, COLOR_ORANGE
 from sorter_logic.i18n import translator as tr
+from sorter_logic.fsutil import human_size
 from paths import resource_path
 
 class DestinationStep(QObject):
@@ -32,12 +34,15 @@ class DestinationStep(QObject):
         self.use_folder_date_checkbox = self.window.findChild(QCheckBox, "useFolderDateCheckbox")
         self.rename_to_date_checkbox = self.window.findChild(QCheckBox, "renameToDateCheckbox")
         self.path_preview_label = self.window.findChild(QLabel, "pathPreviewLabel")
+        self.space_label = self.window.findChild(QLabel, "spaceLabel")
         self.continue_btn = self.window.findChild(QPushButton, "continueButton")
         self.back_btn = self.window.findChild(QPushButton, "backButton")
 
         self.title_label.setProperty("heading", "true")
         self.subtitle_label.setProperty("subheading", "true")
         self.path_preview_label.setProperty("muted", "true")
+        self.space_label.setProperty("muted", "true")
+        self.required_size_bytes = 0
         mark_primary(self.continue_btn)
         mark_secondary(self.choose_dest_btn)
         mark_secondary(self.back_btn)
@@ -66,6 +71,10 @@ class DestinationStep(QObject):
         self.back_btn.setText(tr.t("common.back"))
         self.update_preview()
 
+    def set_required_size(self, size_bytes):
+        self.required_size_bytes = size_bytes or 0
+        self.update_preview()
+
     def get_data(self):
         return {
             "collection_name": self.collection_name_edit.text().strip(),
@@ -83,6 +92,7 @@ class DestinationStep(QObject):
         self.use_mtime_checkbox.setChecked(True)
         self.use_folder_date_checkbox.setChecked(True)
         self.rename_to_date_checkbox.setChecked(False)
+        self.required_size_bytes = 0
         self.update_preview()
 
     def eventFilter(self, obj, event):
@@ -113,10 +123,36 @@ class DestinationStep(QObject):
                 self.path_preview_label.setText(
                     tr.t("destination.preview_no_name", dest=dest, file=example_file)
                 )
-            self.continue_btn.setEnabled(True)
+            space_ok = self._render_space_label(dest)
+            self.continue_btn.setEnabled(space_ok)
         else:
             self.path_preview_label.setText(tr.t("destination.preview_placeholder"))
+            self.space_label.setText("")
             self.continue_btn.setEnabled(False)
+
+    def _render_space_label(self, dest):
+        if not self.required_size_bytes:
+            self.space_label.setText("")
+            return True
+        try:
+            free_bytes = shutil.disk_usage(dest).free
+        except OSError:
+            self.space_label.setText("")
+            return True
+
+        required = human_size(self.required_size_bytes)
+        available = human_size(free_bytes)
+        if free_bytes >= self.required_size_bytes:
+            self.space_label.setText(
+                f'<span style="color:{COLOR_GREEN};">{tr.t("destination.space_ok", required=required, available=available)}</span>'
+            )
+            return True
+        else:
+            self.space_label.setText(
+                f'<span style="color:{COLOR_ORANGE}; font-weight:bold;">'
+                f'{tr.t("destination.space_low", required=required, available=available)}</span>'
+            )
+            return False
 
 
 if __name__ == "__main__":
