@@ -4,7 +4,7 @@ import subprocess
 from PySide6.QtWidgets import QApplication, QPushButton, QLabel, QFrame
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QObject, Signal
-from sorter_logic.theme import mark_primary, mark_secondary, COLOR_GREEN, COLOR_ORANGE
+from sorter_logic.theme import mark_primary, mark_secondary, apply_card_shadow, COLOR_GREEN, COLOR_ORANGE
 from sorter_logic.i18n import translator as tr
 from paths import resource_path
 
@@ -32,6 +32,7 @@ class SummaryStep(QObject):
         self.log_path_label = self.window.findChild(QLabel, "logPathLabel")
         self.open_dest_btn = self.window.findChild(QPushButton, "openDestButton")
         self.open_log_btn = self.window.findChild(QPushButton, "openLogButton")
+        self.review_dupes_btn = self.window.findChild(QPushButton, "reviewDuplicatesButton")
         self.start_new_btn = self.window.findChild(QPushButton, "startNewButton")
 
         self.number_labels = {}
@@ -39,6 +40,7 @@ class SummaryStep(QObject):
         for card in STAT_CARDS:
             frame = self.window.findChild(QFrame, f"{card}Card")
             frame.setProperty("card", "true")
+            apply_card_shadow(frame)
             number_label = self.window.findChild(QLabel, f"{card}NumberLabel")
             caption_label = self.window.findChild(QLabel, f"{card}CaptionLabel")
             number_label.setProperty("cardNumber", "true")
@@ -50,16 +52,21 @@ class SummaryStep(QObject):
         self.log_path_label.setProperty("muted", "true")
         mark_secondary(self.open_dest_btn)
         mark_secondary(self.open_log_btn)
+        mark_secondary(self.review_dupes_btn)
         mark_primary(self.start_new_btn)
 
         self.dest_path = None
         self.log_path = None
         self._ok = None
+        self.duplicates_removed = 0
 
         self.open_dest_btn.clicked.connect(self.open_destination_folder)
         self.open_log_btn.clicked.connect(self.open_log_file)
         self.start_new_btn.clicked.connect(self.start_new_requested.emit)
 
+        # Duplicates are now removed automatically during sorting, so there is
+        # nothing to review here - the button stays hidden.
+        self.review_dupes_btn.setVisible(False)
         self.retranslate()
 
     def retranslate(self):
@@ -85,10 +92,12 @@ class SummaryStep(QObject):
             )
 
     def _render_log_path_label(self):
+        lines = []
+        if self.duplicates_removed:
+            lines.append(tr.t("summary.duplicates_removed", count=self.duplicates_removed))
         if self.log_path:
-            self.log_path_label.setText(tr.t("summary.log_file", path=self.log_path))
-        else:
-            self.log_path_label.setText("")
+            lines.append(tr.t("summary.log_file", path=self.log_path))
+        self.log_path_label.setText("\n".join(lines))
 
     def set_data(self, result):
         stats = result.get("stats") or {}
@@ -96,12 +105,14 @@ class SummaryStep(QObject):
         dest = result.get("dest_path") or ""
         name = result.get("collection_name") or ""
         self.dest_path = os.path.join(dest, name) if name else dest
+        self.duplicates_removed = stats.get("duplicates_removed", 0)
 
         for card in STAT_CARDS:
             self.number_labels[card].setText(str(stats.get(STAT_KEYS[card], 0)))
 
         total_out = (stats.get("exif", 0) + stats.get("takeout", 0) + stats.get("filename", 0)
-                     + stats.get("mtime", 0) + stats.get("folder", 0) + stats.get("no_date", 0))
+                     + stats.get("mtime", 0) + stats.get("folder", 0) + stats.get("no_date", 0)
+                     + stats.get("duplicates_removed", 0))
         self._ok = total_out == stats.get("scanned", 0) - stats.get("errors", 0)
         self._render_verify_label()
         self._render_log_path_label()

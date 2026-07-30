@@ -5,6 +5,6 @@ PHOTO_EXT = {'.jpg', '.jpeg', '.png', '.heic', '.heif', '.tif', '.tiff',
 VIDEO_EXT = {'.mp4', '.mov', '.m4v', '.avi', '.mkv', '.3gp', '.mts', '.m2ts', '.wmv', '.flv'}
 MEDIA_EXT = PHOTO_EXT | VIDEO_EXT
 
-THEME_COLOR = '#D97757'
+THEME_COLOR = '#0A84FF'
 
 FOLDER_DATE_RE = re.compile(r'(20\d{2})[-_]?(0[1-9]|1[0-2])')

@@ -18,25 +18,30 @@ TRANSLATIONS = {
 
         "welcome.title": "Welcome to Photo & Video Sorter",
         "welcome.intro": (
-            "This wizard organizes your photos and videos into a clean Year / "
-            "Year-Month folder structure, using the date each file was actually "
-            "taken - not the date it happened to be copied."
+            "Sort your photos and videos into tidy Year / Year-Month folders - "
+            "by the day each one was actually taken."
         ),
         "welcome.steps": (
-            "Here's what happens next:\n\n"
-            "1. Scan Source Folder - point the app at a folder and it finds every "
-            "photo and video inside it, including subfolders.\n"
-            "2. Destination and Options - choose where the sorted copies go, and "
-            "give this collection a name.\n"
-            "3. Sorting - the app copies every file into dated folders. Your "
-            "originals are never modified or deleted.\n"
-            "4. Summary - see exactly what happened, and open the results."
+            "<div style='line-height:150%'>"
+            "<span style='color:{accent}'><b>&#10003; Your originals stay safe.</b></span><br>"
+            "Files are only ever copied - never changed or deleted."
+            "<br><br>"
+            "<span style='color:{accent}'><b>&#10003; The real date wins.</b></span><br>"
+            "The day a photo was taken, not the day it landed on your drive."
+            "<br><br>"
+            "<span style='color:{accent}'><b>&#10003; It reads many sources.</b></span><br>"
+            "Photo metadata, the filename, Google Takeout, and the file's own date."
+            "</div>"
         ),
         "welcome.get_started": "Get Started",
 
-        "source.title": "Select Source Folder",
-        "source.subtitle": "Choose the folder to scan...",
+        "source.title": "Select Source Folders",
+        "source.subtitle": "Choose one or more folders to scan and sort.",
         "source.choose_folder": "Choose Folder",
+        "source.choose_row": "Choose…",
+        "source.add_path": "+ Add another folder",
+        "source.remove_tooltip": "Remove this folder",
+        "source.row_placeholder": "No folder chosen yet",
         "source.no_folder": "No folder selected yet.",
         "source.selected_folder": (
             'Your selected folder is <span style="color: {color}; font-weight: bold;">'
@@ -52,7 +57,15 @@ TRANSLATIONS = {
             '{total}</span> media file(s) across '
             '<span style="color: {color}; font-weight: bold;">{folders}</span> folder(s).'
         ),
+        "source.scan_duplicates": (
+            '<span style="color: {color}; font-weight: bold;">{count}</span> '
+            'of them are duplicates and will be skipped (only unique files are copied).'
+        ),
         "source.file_types": "File Types...",
+        "source.found_types": "File types found: {breakdown}",
+        "source.found_types_hint": "Use \"File Types...\" to exclude any you don't want to move.",
+        "source.type_disabled": "{ext} ({n}, off)",
+        "source.type_enabled": "{ext} ({n})",
 
         "destination.title": "Destination and Options",
         "destination.subtitle": "Choose where sorted files will be saved.",
@@ -78,6 +91,7 @@ TRANSLATIONS = {
         "sorting.title": "Sorting Files",
         "sorting.subtitle": "Copying files into year/month folders. Originals are never modified or deleted.",
         "sorting.summary": "Source: {src}\nDestination: {dst}\nFilename-timestamp fallback: {filename_fallback}\nFile-date fallback: {mtime_fallback}\nFolder-name fallback: {fallback}\nRename to date: {rename}",
+        "sorting.n_sources": "{n} folders",
         "sorting.fallback_on": "on",
         "sorting.fallback_off": "off",
         "sorting.start": "Start Sorting",
@@ -89,6 +103,8 @@ TRANSLATIONS = {
         "sorting.failed": "Sorting failed - see log above.",
         "sorting.cancel": "Cancel Sorting",
         "sorting.view_summary": "View Summary",
+        "sorting.show_details": "▸ Show details",
+        "sorting.hide_details": "▾ Hide details",
 
         "summary.title": "Sorting Complete",
         "summary.ok": "\u2713 Verification OK - all files accounted for.",
@@ -103,14 +119,57 @@ TRANSLATIONS = {
         "summary.errors": "Errors",
         "summary.skipped": "Non-Media Skipped",
         "summary.log_file": "Log file: {path}",
-        "summary.open_dest": "Open Destination Folder",
+        "summary.duplicates_removed": "Removed {count} duplicate copy/copies (kept one of each).",
+        "summary.open_dest": "Open Folder",
         "summary.open_log": "Open Log File",
         "summary.start_new": "Start New Sort",
+        "summary.review_duplicates": "Review Duplicates ({count})",
+
+        "duplicates.title": "Duplicate Files",
+        "duplicates.subtitle": "Found {count} duplicate copy/copies across {sets} set(s). These are byte-for-byte identical files in your sorted result. One copy is kept from each set; the rest can be deleted. Your original files are never touched.",
+        "duplicates.set_header": "Set {index} - {count} identical copies",
+        "duplicates.keep": "KEEP",
+        "duplicates.duplicate": "DUPLICATE",
+        "duplicates.delete_all": "Delete All Duplicates",
+        "duplicates.done": "Done - deleted {count} duplicate file(s).",
 
         "settings.title": "App Settings",
         "settings.language": "Language",
         "settings.close": "Close",
         "settings.note": "The live sorting log stays in English regardless of this setting.",
+
+        "compare.title": "Compare Folders",
+        "compare.subtitle": "Pick two folders and see how many photos and videos each one holds.",
+        "compare.folder_a": "Folder A:",
+        "compare.folder_b": "Folder B:",
+        "compare.choose": "Choose…",
+        "compare.compare": "Compare",
+        "compare.scanning": "Scanning…",
+        "compare.pick_both": "Pick both folders first.",
+        "compare.count": "<b>{name}</b>: {count} media file(s)",
+        "compare.same": "✓ Both folders hold the same number of media files.",
+        "compare.diff": "{more} has {n} more media file(s) than {less}.",
+        "compare.tooltip": "Compare two folders",
+
+        "dupfinder.title": "Find Duplicates",
+        "dupfinder.subtitle": "Scan a folder for identical photos and videos, then delete the redundant copies (one is kept from each set).",
+        "dupfinder.choose": "Choose…",
+        "dupfinder.scan": "Scan",
+        "dupfinder.scanning": "Scanning…",
+        "dupfinder.progress": "Checking {done} / {total} files…",
+        "dupfinder.pick_first": "Pick a folder first.",
+        "dupfinder.none": "✓ No duplicates found - every file in this folder is unique.",
+        "dupfinder.found": ('Found <span style="color: {color}; font-weight: bold;">{count}</span> '
+                            'duplicate file(s) across {sets} set(s).'),
+        "dupfinder.showing": "Showing the first {shown} of {total} sets - delete still covers all of them.",
+        "dupfinder.set_header": "Set {index} — {count} identical copies",
+        "dupfinder.keep": "KEEP",
+        "dupfinder.duplicate": "DUPLICATE",
+        "dupfinder.delete": "Delete {count} duplicate(s)",
+        "dupfinder.confirm_title": "Delete duplicates?",
+        "dupfinder.confirm": "Permanently delete {count} duplicate file(s)? One copy is kept from each set. This cannot be undone.",
+        "dupfinder.deleted": "✓ Deleted {count} duplicate file(s).",
+        "dupfinder.tooltip": "Find duplicate photos",
     },
     "pl": {
         "sidebar.title": "KROKI",
@@ -127,25 +186,30 @@ TRANSLATIONS = {
 
         "welcome.title": "Witamy w Photo & Video Sorter",
         "welcome.intro": (
-            "Ten kreator porz\u0105dkuje Twoje zdj\u0119cia i filmy w przejrzyst\u0105 "
-            "struktur\u0119 folder\u00f3w Rok / Rok-Miesi\u0105c, wykorzystuj\u0105c dat\u0119 "
-            "faktycznego wykonania pliku - a nie dat\u0119 jego skopiowania."
+            "Uporz\u0105dkuj swoje zdj\u0119cia i filmy w foldery Rok / Rok-Miesi\u0105c - "
+            "wed\u0142ug dnia, w kt\u00f3rym naprawd\u0119 powsta\u0142y."
         ),
         "welcome.steps": (
-            "Oto co si\u0119 teraz wydarzy:\n\n"
-            "1. Skanowanie folderu \u017ar\u00f3d\u0142owego - wska\u017c folder, a aplikacja "
-            "znajdzie w nim wszystkie zdj\u0119cia i filmy, tak\u017ce w podfolderach.\n"
-            "2. Miejsce docelowe i opcje - wybierz, gdzie maj\u0105 trafi\u0107 posortowane "
-            "kopie, i nadaj tej kolekcji nazw\u0119.\n"
-            "3. Sortowanie - aplikacja kopiuje ka\u017cdy plik do folderu z dat\u0105. "
-            "Orygina\u0142y nigdy nie s\u0105 modyfikowane ani usuwane.\n"
-            "4. Podsumowanie - zobacz dok\u0142adnie co si\u0119 sta\u0142o i otw\u00f3rz wyniki."
+            "<div style='line-height:150%'>"
+            "<span style='color:{accent}'><b>&#10003; Twoje orygina\u0142y s\u0105 bezpieczne.</b></span><br>"
+            "Pliki s\u0105 tylko kopiowane - nigdy nie zmieniane ani usuwane."
+            "<br><br>"
+            "<span style='color:{accent}'><b>&#10003; Liczy si\u0119 prawdziwa data.</b></span><br>"
+            "Dzie\u0144 wykonania zdj\u0119cia, a nie moment skopiowania na dysk."
+            "<br><br>"
+            "<span style='color:{accent}'><b>&#10003; Rozpoznaje r\u00f3\u017cne \u017ar\u00f3d\u0142a.</b></span><br>"
+            "Metadane zdj\u0119cia, nazw\u0119 pliku, Google Takeout i dat\u0119 pliku."
+            "</div>"
         ),
         "welcome.get_started": "Rozpocznij",
 
-        "source.title": "Wybierz folder \u017ar\u00f3d\u0142owy",
-        "source.subtitle": "Wybierz folder do przeskanowania...",
+        "source.title": "Wybierz foldery \u017ar\u00f3d\u0142owe",
+        "source.subtitle": "Wybierz jeden lub wi\u0119cej folder\u00f3w do przeskanowania i posortowania.",
         "source.choose_folder": "Wybierz folder",
+        "source.choose_row": "Wybierz\u2026",
+        "source.add_path": "+ Dodaj kolejny folder",
+        "source.remove_tooltip": "Usu\u0144 ten folder",
+        "source.row_placeholder": "Nie wybrano folderu",
         "source.no_folder": "Nie wybrano jeszcze folderu.",
         "source.selected_folder": (
             'Wybrany folder to <span style="color: {color}; font-weight: bold;">'
@@ -161,7 +225,15 @@ TRANSLATIONS = {
             '{total}</span> plik(\u00f3w) multimedialnych w '
             '<span style="color: {color}; font-weight: bold;">{folders}</span> folderze/folderach.'
         ),
+        "source.scan_duplicates": (
+            'w tym <span style="color: {color}; font-weight: bold;">{count}</span> '
+            'duplikat\u00f3w \u2013 zostan\u0105 pomini\u0119te (kopiowane s\u0105 tylko unikalne pliki).'
+        ),
         "source.file_types": "Typy plik\u00f3w...",
+        "source.found_types": "Znalezione typy plik\u00f3w: {breakdown}",
+        "source.found_types_hint": "U\u017cyj \"Typy plik\u00f3w...\", aby wykluczy\u0107 te, kt\u00f3rych nie chcesz przenosi\u0107.",
+        "source.type_disabled": "{ext} ({n}, wy\u0142.)",
+        "source.type_enabled": "{ext} ({n})",
 
         "destination.title": "Miejsce docelowe i opcje",
         "destination.subtitle": "Wybierz, gdzie zostan\u0105 zapisane posortowane pliki.",
@@ -187,6 +259,7 @@ TRANSLATIONS = {
         "sorting.title": "Sortowanie plik\u00f3w",
         "sorting.subtitle": "Kopiowanie plik\u00f3w do folder\u00f3w rok/miesi\u0105c. Orygina\u0142y nigdy nie s\u0105 modyfikowane ani usuwane.",
         "sorting.summary": "\u0179r\u00f3d\u0142o: {src}\nCel: {dst}\nData z nazwy pliku: {filename_fallback}\nData modyfikacji pliku: {mtime_fallback}\nDaty z nazwy folderu: {fallback}\nZmiana nazwy na dat\u0119: {rename}",
+        "sorting.n_sources": "{n} folder\u00f3w",
         "sorting.fallback_on": "w\u0142\u0105czone",
         "sorting.fallback_off": "wy\u0142\u0105czone",
         "sorting.start": "Rozpocznij sortowanie",
@@ -198,6 +271,8 @@ TRANSLATIONS = {
         "sorting.failed": "Sortowanie nie powiod\u0142o si\u0119 - zobacz log powy\u017cej.",
         "sorting.cancel": "Anuluj sortowanie",
         "sorting.view_summary": "Zobacz podsumowanie",
+        "sorting.show_details": "▸ Pokaż szczegóły",
+        "sorting.hide_details": "▾ Ukryj szczegóły",
 
         "summary.title": "Sortowanie zako\u0144czone",
         "summary.ok": "\u2713 Weryfikacja OK - wszystkie pliki uwzgl\u0119dnione.",
@@ -212,14 +287,57 @@ TRANSLATIONS = {
         "summary.errors": "B\u0142\u0119dy",
         "summary.skipped": "Pomini\u0119te pliki",
         "summary.log_file": "Plik logu: {path}",
+        "summary.duplicates_removed": "Usuni\u0119to {count} zduplikowanych kopii (zostawiono po jednej).",
         "summary.open_dest": "Otw\u00f3rz folder",
         "summary.open_log": "Otw\u00f3rz log",
         "summary.start_new": "Nowe sortowanie",
+        "summary.review_duplicates": "Przejrzyj duplikaty ({count})",
+
+        "duplicates.title": "Zduplikowane pliki",
+        "duplicates.subtitle": "Znaleziono {count} zduplikowan\u0105 kopi\u0119/kopii w {sets} zestawie/zestawach. To pliki identyczne co do bajta w posortowanym wyniku. Z ka\u017cdego zestawu jedna kopia zostaje zachowana; reszt\u0119 mo\u017cna usun\u0105\u0107. Twoje oryginalne pliki nigdy nie s\u0105 ruszane.",
+        "duplicates.set_header": "Zestaw {index} - {count} identycznych kopii",
+        "duplicates.keep": "ZOSTAJE",
+        "duplicates.duplicate": "DUPLIKAT",
+        "duplicates.delete_all": "Usu\u0144 wszystkie duplikaty",
+        "duplicates.done": "Gotowe - usuni\u0119to {count} zduplikowanych plik\u00f3w.",
 
         "settings.title": "Ustawienia aplikacji",
         "settings.language": "J\u0119zyk",
         "settings.close": "Zamknij",
         "settings.note": "Log sortowania na \u017cywo zawsze pozostaje w j\u0119zyku angielskim.",
+
+        "compare.title": "Por\u00f3wnaj foldery",
+        "compare.subtitle": "Wybierz dwa foldery i sprawd\u017a, ile zdj\u0119\u0107 i film\u00f3w zawiera ka\u017cdy z nich.",
+        "compare.folder_a": "Folder A:",
+        "compare.folder_b": "Folder B:",
+        "compare.choose": "Wybierz\u2026",
+        "compare.compare": "Por\u00f3wnaj",
+        "compare.scanning": "Skanowanie\u2026",
+        "compare.pick_both": "Najpierw wybierz oba foldery.",
+        "compare.count": "<b>{name}</b>: {count} plik(\u00f3w) multimedialnych",
+        "compare.same": "\u2713 Oba foldery maj\u0105 tyle samo plik\u00f3w multimedialnych.",
+        "compare.diff": "{more} ma o {n} plik(\u00f3w) multimedialnych wi\u0119cej ni\u017c {less}.",
+        "compare.tooltip": "Por\u00f3wnaj dwa foldery",
+
+        "dupfinder.title": "Znajd\u017a duplikaty",
+        "dupfinder.subtitle": "Przeskanuj folder w poszukiwaniu identycznych zdj\u0119\u0107 i film\u00f3w, a potem usu\u0144 zb\u0119dne kopie (z ka\u017cdego zestawu jedna zostaje).",
+        "dupfinder.choose": "Wybierz\u2026",
+        "dupfinder.scan": "Skanuj",
+        "dupfinder.scanning": "Skanowanie\u2026",
+        "dupfinder.progress": "Sprawdzanie {done} / {total} plik\u00f3w\u2026",
+        "dupfinder.pick_first": "Najpierw wybierz folder.",
+        "dupfinder.none": "\u2713 Nie znaleziono duplikat\u00f3w - ka\u017cdy plik w tym folderze jest unikalny.",
+        "dupfinder.found": ('Znaleziono <span style="color: {color}; font-weight: bold;">{count}</span> '
+                            'zduplikowanych plik\u00f3w w {sets} zestawie/zestawach.'),
+        "dupfinder.showing": "Pokazuj\u0119 pierwsze {shown} z {total} zestaw\u00f3w - usuwanie i tak obejmuje wszystkie.",
+        "dupfinder.set_header": "Zestaw {index} \u2014 {count} identycznych kopii",
+        "dupfinder.keep": "ZOSTAJE",
+        "dupfinder.duplicate": "DUPLIKAT",
+        "dupfinder.delete": "Usu\u0144 {count} duplikat(\u00f3w)",
+        "dupfinder.confirm_title": "Usun\u0105\u0107 duplikaty?",
+        "dupfinder.confirm": "Trwale usun\u0105\u0107 {count} zduplikowanych plik\u00f3w? Z ka\u017cdego zestawu jedna kopia zostaje. Tego nie mo\u017cna cofn\u0105\u0107.",
+        "dupfinder.deleted": "\u2713 Usuni\u0119to {count} zduplikowanych plik\u00f3w.",
+        "dupfinder.tooltip": "Znajd\u017a duplikaty zdj\u0119\u0107",
     },
 }
 

@@ -1,5 +1,6 @@
 import os
 import shutil
+import itertools
 from datetime import datetime
 import time
 from .constants import MEDIA_EXT, PHOTO_EXT, VIDEO_EXT
@@ -8,7 +9,7 @@ from .dates import (
     get_mtime_date, get_folder_date,
 )
 from .fsutil import unique_path
-from .scan_source import scan_source
+from .scan_source import scan_source, file_fingerprint
 
 def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
              should_cancel=None, use_mtime=True, use_filename_date=True,
@@ -47,6 +48,9 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
     should_cancel() stopped the run before every file was processed.
     """
     start_time = time.time()
+    # src may be a single path or a list of source roots.
+    roots = src if isinstance(src, (list, tuple)) else [src]
+    roots = [r for r in roots if r]
     allowed = allowed_extensions if allowed_extensions is not None else MEDIA_EXT
 
     have_pillow = True
@@ -72,7 +76,12 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
     logline("=" * 70)
     logline("Photo & Video Sorter - run started")
     logline("=" * 70)
-    logline(f"Source folder:              {src}")
+    if len(roots) == 1:
+        logline(f"Source folder:              {roots[0]}")
+    else:
+        logline(f"Source folders ({len(roots)}):")
+        for r in roots:
+            logline(f"   - {r}")
     logline(f"Destination folder:         {out_base}")
     logline(f"Pillow (EXIF) available:    {'yes' if have_pillow else 'NO - install with: pip install Pillow'}")
     logline(f"ffprobe (video dates):      {'yes' if have_ffprobe else 'NO - install with: brew install ffmpeg'}")
@@ -84,8 +93,21 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
     logline("-" * 70)
 
     stats = {"exif": 0, "takeout": 0, "filename": 0, "mtime": 0, "folder": 0,
-             "no_date": 0, "errors": 0, "scanned": 0, "skipped": 0, "cancelled": False}
+             "no_date": 0, "errors": 0, "scanned": 0, "skipped": 0, "cancelled": False,
+             "duplicates_removed": 0}
     no_date_files = []
+
+    # Inline de-duplication: fingerprint each file (size + head/tail hash) as we
+    # reach it and skip any whose content we've already copied. Duplicates are
+    # therefore never written, so the destination holds one copy of each unique
+    # file and a nearly-full disk can't overflow. Originals are never touched.
+    #   fingerprint -> source path of the copy we kept
+    seen = {}
+
+    def copy_file(src_file, dest_dir, copy_name):
+        target = unique_path(dest_dir, copy_name)
+        shutil.copy2(src_file, target)
+        return target
 
     scan = scan_source(src, allowed)
     total = scan["total"]
@@ -97,7 +119,7 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
     progress(0, total)
     done = 0
 
-    for dirpath, _, filenames in os.walk(src):
+    for dirpath, _, filenames in itertools.chain.from_iterable(os.walk(r) for r in roots):
         if stats["cancelled"]:
             break
         for name in filenames:
@@ -121,6 +143,21 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
             stats["scanned"] += 1
             if on_file:
                 on_file(name)
+
+            try:
+                fp = file_fingerprint(src_file)
+            except OSError:
+                fp = None
+            if fp is not None:
+                if fp in seen:
+                    stats["duplicates_removed"] += 1
+                    logline(f"[DUPLICATE] {name} -> same content as "
+                            f"{os.path.basename(seen[fp])}, skipped (not copied)")
+                    done += 1
+                    progress(done, total)
+                    continue
+                seen[fp] = src_file
+
             try:
                 dt, source = None, None
 
@@ -165,11 +202,11 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
 
                 if dt is None:
                     os.makedirs(review_dir, exist_ok=True)
-                    target = unique_path(review_dir, name)
-                    shutil.copy2(src_file, target)
-                    stats["no_date"] += 1
-                    no_date_files.append(src_file)
-                    logline(f"[NO DATE] {name} -> no date found from any source, copied to _NoEXIF_review")
+                    target = copy_file(src_file, review_dir, name)
+                    if target:
+                        stats["no_date"] += 1
+                        no_date_files.append(src_file)
+                        logline(f"[NO DATE] {name} -> no date found from any source, copied to _NoEXIF_review")
                 else:
                     dest_dir = os.path.join(out_base, f"{dt.year:04d}", f"{dt.year:04d}-{dt.month:02d}")
                     os.makedirs(dest_dir, exist_ok=True)
@@ -177,10 +214,10 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
                     if rename_to_date:
                         copy_name = f"{dt:%Y-%m-%d %H.%M.%S}{ext}"
                         logline(f"[RENAME] {name} -> {copy_name}")
-                    target = unique_path(dest_dir, copy_name)
-                    shutil.copy2(src_file, target)
-                    stats[source] += 1
-                    logline(f"[COPY] {name} -> {target}")
+                    target = copy_file(src_file, dest_dir, copy_name)
+                    if target:
+                        stats[source] += 1
+                        logline(f"[COPY] {name} -> {target}")
 
             except Exception as e:
                 stats["errors"] += 1
@@ -201,12 +238,14 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
     logline(f"  Dated via file's modified date:  {stats['mtime']}")
     logline(f"  Dated via folder name:           {stats['folder']}")
     logline(f"  No date found (sent to review):  {stats['no_date']}")
+    logline(f"  Duplicate copies removed:        {stats['duplicates_removed']}")
     logline(f"  Errors:                          {stats['errors']}")
     logline(f"  Non-media files skipped:         {stats['skipped']}")
     logline(f"  Time elapsed:                    {elapsed:.1f}s")
 
     total_out = (stats['exif'] + stats['takeout'] + stats['filename']
-                 + stats['mtime'] + stats['folder'] + stats['no_date'])
+                 + stats['mtime'] + stats['folder'] + stats['no_date']
+                 + stats['duplicates_removed'])
     if total_out == stats['scanned'] - stats['errors']:
         logline("  VERIFICATION OK: file counts match.")
     else:

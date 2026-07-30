@@ -294,6 +294,13 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="reviewDuplicatesButton">
+       <property name="text">
+        <string>Review Duplicates</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="navSpacer">
        <property name="orientation">
         <enum>Qt::Orientation::Horizontal</enum>

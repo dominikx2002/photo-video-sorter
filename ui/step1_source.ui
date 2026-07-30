@@ -41,22 +41,43 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QLineEdit" name="srcPathEdit">
-       <property name="readOnly">
-        <bool>true</bool>
+    <widget class="QScrollArea" name="pathsScroll">
+     <property name="widgetResizable">
+      <bool>true</bool>
+     </property>
+     <property name="maximumHeight">
+      <number>156</number>
+     </property>
+     <property name="horizontalScrollBarPolicy">
+      <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+     </property>
+     <widget class="QWidget" name="pathsContainer">
+      <layout class="QVBoxLayout" name="pathsLayout">
+       <property name="spacing">
+        <number>6</number>
        </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="chooseFolderButton">
-       <property name="text">
-        <string>Choose Folder</string>
+       <property name="leftMargin">
+        <number>0</number>
        </property>
-      </widget>
-     </item>
-    </layout>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="addPathButton">
+     <property name="text">
+      <string>+ Add another folder</string>
+     </property>
+    </widget>
    </item>
    <item>
     <widget class="QLabel" name="chooseFolderLabel">
@@ -80,6 +101,16 @@
    </item>
    <item>
     <widget class="QLabel" name="statusLabel">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="foundTypesLabel">
      <property name="text">
       <string/>
      </property>

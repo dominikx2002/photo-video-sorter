@@ -5,7 +5,6 @@ import shutil
 from PySide6.QtWidgets import QApplication, QPushButton, QLineEdit, QFileDialog, QLabel, QCheckBox
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QObject, QEvent, Signal
-from sorter_logic.constants import THEME_COLOR
 from sorter_logic.theme import mark_primary, mark_secondary, COLOR_GREEN, COLOR_ORANGE
 from sorter_logic.i18n import translator as tr
 from sorter_logic.fsutil import human_size

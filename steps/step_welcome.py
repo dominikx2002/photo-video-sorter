@@ -1,8 +1,8 @@
 import sys
 from PySide6.QtWidgets import QApplication, QPushButton, QLabel
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, QObject, Signal
-from sorter_logic.theme import mark_primary
+from PySide6.QtCore import QFile, QObject, Signal, Qt
+from sorter_logic.theme import mark_primary, accent
 from sorter_logic.i18n import translator as tr
 from paths import resource_path
 
@@ -24,6 +24,8 @@ class WelcomeStep(QObject):
         self.get_started_btn = self.window.findChild(QPushButton, "getStartedButton")
 
         self.title_label.setProperty("heading", "true")
+        self.intro_label.setProperty("lead", "true")
+        self.steps_label.setTextFormat(Qt.RichText)
         mark_primary(self.get_started_btn)
 
         self.get_started_btn.clicked.connect(self.continue_requested.emit)
@@ -33,7 +35,7 @@ class WelcomeStep(QObject):
     def retranslate(self):
         self.title_label.setText(tr.t("welcome.title"))
         self.intro_label.setText(tr.t("welcome.intro"))
-        self.steps_label.setText(tr.t("welcome.steps"))
+        self.steps_label.setText(tr.t("welcome.steps", accent=accent()))
         self.get_started_btn.setText(tr.t("welcome.get_started"))
 
 

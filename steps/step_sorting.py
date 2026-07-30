@@ -6,23 +6,27 @@ from PySide6.QtWidgets import QApplication, QPushButton, QLabel, QProgressBar, Q
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QThread, Signal, QObject, QPropertyAnimation, QEasingCurve
 from sorter_logic import run_sort
-from sorter_logic.theme import mark_primary, mark_secondary, COLOR_GREEN, COLOR_ORANGE, COLOR_PRIMARY, COLOR_TEXT
+from sorter_logic.theme import mark_primary, mark_secondary
 from sorter_logic.i18n import translator as tr
 from paths import resource_path
 
+# Bright, terminal-style palette - the log renders white-on-dark, so these are
+# tuned to read against #1E1E24 (roughly the VS Code / iTerm defaults).
 LOG_COLORS = {
-    "[COPY]": COLOR_GREEN,
-    "[EXIF]": "#2A6FB0",
-    "[VIDEO]": "#2A6FB0",
-    "[TAKEOUT]": "#2A6FB0",
-    "[FILENAME]": "#6C5CE7",
-    "[MTIME]": "#2FA39B",
-    "[RENAME]": "#6C5CE7",
-    "[FOLDER-DATE]": COLOR_ORANGE,
-    "[NO DATE]": COLOR_ORANGE,
-    "[ERROR]": COLOR_PRIMARY,
-    "[SKIP]": "#A9ACB1",
+    "[COPY]": "#4EC98A",
+    "[EXIF]": "#4FA6FF",
+    "[VIDEO]": "#4FA6FF",
+    "[TAKEOUT]": "#4FA6FF",
+    "[FILENAME]": "#C58AF0",
+    "[MTIME]": "#4EC9C9",
+    "[RENAME]": "#C58AF0",
+    "[FOLDER-DATE]": "#E5B045",
+    "[NO DATE]": "#E5B045",
+    "[DUPLICATE]": "#E5B045",
+    "[ERROR]": "#F16A6A",
+    "[SKIP]": "#8A8D94",
 }
+LOG_DEFAULT_COLOR = "#D4D4DC"
 
 
 def get_log_dir():
@@ -102,6 +106,9 @@ class SortingStep(QObject):
         self.current_file_label = self.window.findChild(QLabel, "currentFileLabel")
         self.log_view = self.window.findChild(QPlainTextEdit, "logView")
         self.log_view.setObjectName("logView")
+        self.details_toggle_btn = self.window.findChild(QPushButton, "detailsToggleButton")
+        self.details_toggle_btn.setObjectName("detailsToggle")
+        self.details_spacer = self.window.findChild(QWidget, "detailsSpacer")
         self.pre_start_spacer = self.window.findChild(QWidget, "preStartSpacer")
         self.back_btn = self.window.findChild(QPushButton, "backButton")
         self.cancel_btn = self.window.findChild(QPushButton, "cancelButton")
@@ -142,6 +149,7 @@ class SortingStep(QObject):
         self.continue_btn.clicked.connect(self.continue_requested.emit)
         self.back_btn.clicked.connect(self.back_requested.emit)
         self.cancel_btn.clicked.connect(self.cancel_sorting)
+        self.details_toggle_btn.clicked.connect(self.toggle_details)
 
         self.thread = None
         self.worker = None
@@ -150,6 +158,7 @@ class SortingStep(QObject):
         self.context = None
         self._progress_state = None
         self._current_file_name = None
+        self._details_open = False
 
         self._reset_ui()
         self.retranslate()
@@ -164,12 +173,31 @@ class SortingStep(QObject):
         self._render_summary_label()
         self._render_progress_label()
         self._render_current_file_label()
+        self._render_details_toggle()
+
+    def _render_details_toggle(self):
+        key = "sorting.hide_details" if self._details_open else "sorting.show_details"
+        self.details_toggle_btn.setText(tr.t(key))
+
+    def toggle_details(self):
+        # Ubuntu-installer style: the log stays hidden behind this disclosure,
+        # so the default view is just the progress. Expanding reveals the
+        # terminal; the expanding spacer that keeps the nav pinned to the
+        # bottom yields its space to the log.
+        self._details_open = not self._details_open
+        self.log_view.setVisible(self._details_open)
+        self.details_spacer.setVisible(not self._details_open)
+        self._render_details_toggle()
 
     def _render_summary_label(self):
         if not self.context:
             self.summary_label.setText("")
             return
-        src_path = self.context["src_path"]
+        src = self.context["src_path"]
+        if isinstance(src, (list, tuple)):
+            src_path = src[0] if len(src) == 1 else tr.t("sorting.n_sources", n=len(src))
+        else:
+            src_path = src
         dest_path = self.context["dest_path"]
         collection_name = self.context["collection_name"]
         dst = os.path.join(dest_path, collection_name) if collection_name else dest_path
@@ -239,8 +267,12 @@ class SortingStep(QObject):
         self.pulse_anim.stop()
         self.current_file_label.hide()
         self._render_current_file_label()
+        self._details_open = False
+        self.details_toggle_btn.hide()
+        self.details_spacer.hide()
         self.log_view.hide()
         self.log_view.clear()
+        self._render_details_toggle()
         self.continue_btn.setEnabled(False)
         self.back_btn.setEnabled(True)
         self.cancel_btn.hide()
@@ -256,7 +288,13 @@ class SortingStep(QObject):
         self.progress_label.show()
         self.current_file_label.show()
         self.pulse_anim.start()
-        self.log_view.show()
+        # Log stays collapsed behind "Show details"; the spacer holds the nav
+        # at the bottom while the terminal is hidden.
+        self._details_open = False
+        self.log_view.hide()
+        self.details_toggle_btn.show()
+        self.details_spacer.show()
+        self._render_details_toggle()
         self.back_btn.setEnabled(False)
         self.cancel_btn.show()
         self.cancel_btn.setEnabled(True)
@@ -339,7 +377,7 @@ class SortingStep(QObject):
                 color = tag_color
                 break
         if color is None and (msg.isupper() or msg.strip().startswith("=") or msg.strip().startswith("-")):
-            color = COLOR_TEXT
+            color = LOG_DEFAULT_COLOR
         escaped = html.escape(msg)
         if color:
             self.log_view.appendHtml(f'<span style="color:{color};">{escaped}</span>')

@@ -13,6 +13,10 @@ ui_files = [
     ("ui/step3_sorting.ui", "ui"),
     ("ui/step4_summary.ui", "ui"),
     ("packaging/icons/icon.png", "packaging/icons"),
+    ("packaging/icons/check.svg", "packaging/icons"),
+    ("packaging/icons/chevron-down.svg", "packaging/icons"),
+    ("packaging/icons/compare.svg", "packaging/icons"),
+    ("packaging/icons/duplicates.svg", "packaging/icons"),
 ]
 
 a = Analysis(
@@ -20,7 +24,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=ui_files,
-    hiddenimports=[],
+    hiddenimports=["defusedxml", "defusedxml.ElementTree"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -59,7 +63,7 @@ if sys.platform == "darwin":
         bundle_identifier="com.dominikserafin.photovideosorter",
         info_plist={
             "NSHighResolutionCapable": True,
-            "CFBundleShortVersionString": "1.1.0",
+            "CFBundleShortVersionString": "1.2.0",
             "CFBundleName": "Photo & Video Sorter",
         },
     )
