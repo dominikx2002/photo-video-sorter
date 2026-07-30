@@ -50,6 +50,8 @@ def scan_source(src, allowed_extensions=None, detect_duplicates=False):
     unique_size = 0
     non_media = 0
     non_media_size = 0
+    filtered = 0              # media whose type the user deselected
+    filtered_size = 0
     folders = set()
     by_ext = {}
     found_ext = {}
@@ -71,6 +73,11 @@ def scan_source(src, allowed_extensions=None, detect_duplicates=False):
                     continue
                 found_ext[ext] = found_ext.get(ext, 0) + 1
                 if ext not in allowed:
+                    filtered += 1
+                    try:
+                        filtered_size += os.path.getsize(os.path.join(dirpath, name))
+                    except OSError:
+                        pass
                     continue
                 total += 1
                 folders.add(dirpath)
@@ -98,7 +105,8 @@ def scan_source(src, allowed_extensions=None, detect_duplicates=False):
 
     result = {"total": total, "folders": len(folders), "by_ext": by_ext,
               "found_ext": found_ext, "total_size": total_size,
-              "non_media": non_media, "non_media_size": non_media_size}
+              "non_media": non_media, "non_media_size": non_media_size,
+              "filtered": filtered, "filtered_size": filtered_size}
     if detect_duplicates:
         result["duplicate_paths"] = duplicate_paths
         result["duplicate_count"] = len(duplicate_paths)

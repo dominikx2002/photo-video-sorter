@@ -2,6 +2,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton,
     QFrame, QScrollArea, QWidget
 )
+from PySide6.QtCore import Qt
 from sorter_logic.constants import PHOTO_EXT, VIDEO_EXT
 from sorter_logic.settings_store import load_enabled_extensions, save_enabled_extensions
 from sorter_logic.i18n import translator as tr
@@ -18,6 +19,8 @@ class FileTypesDialog(QDialog):
 
         enabled = load_enabled_extensions()
         self.checkboxes = {}
+        self.photo_boxes = []
+        self.video_boxes = []
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 18)
@@ -31,8 +34,7 @@ class FileTypesDialog(QDialog):
         self.subtitle_label.setWordWrap(True)
         layout.addWidget(self.subtitle_label)
 
-        # There are many extensions now, so the checkbox grids live in a
-        # scroll area between the header and the buttons.
+        # Many extensions now, so the grids live in a scroll area.
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
@@ -41,15 +43,21 @@ class FileTypesDialog(QDialog):
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(0, 4, 8, 0)
 
-        self.photos_label = QLabel()
-        self.photos_label.setProperty("muted", "true")
-        content_layout.addWidget(self.photos_label)
-        content_layout.addLayout(self._build_grid(sorted(PHOTO_EXT), enabled))
+        # Section headers are themselves checkboxes that select/clear the whole
+        # section (tri-state to reflect a partial selection).
+        self.photos_header = QCheckBox()
+        self.photos_header.setObjectName("sectionHeader")
+        self.photos_header.setTristate(True)
+        self.photos_header.clicked.connect(lambda: self._toggle_section(self.photo_boxes, self.photos_header))
+        content_layout.addWidget(self.photos_header)
+        content_layout.addLayout(self._build_grid(sorted(PHOTO_EXT), enabled, self.photo_boxes))
 
-        self.videos_label = QLabel()
-        self.videos_label.setProperty("muted", "true")
-        content_layout.addWidget(self.videos_label)
-        content_layout.addLayout(self._build_grid(sorted(VIDEO_EXT), enabled))
+        self.videos_header = QCheckBox()
+        self.videos_header.setObjectName("sectionHeader")
+        self.videos_header.setTristate(True)
+        self.videos_header.clicked.connect(lambda: self._toggle_section(self.video_boxes, self.videos_header))
+        content_layout.addWidget(self.videos_header)
+        content_layout.addLayout(self._build_grid(sorted(VIDEO_EXT), enabled, self.video_boxes))
         content_layout.addStretch(1)
 
         scroll.setWidget(content)
@@ -72,18 +80,38 @@ class FileTypesDialog(QDialog):
         self.close_btn.clicked.connect(self._save_and_close)
         layout.addWidget(self.close_btn)
 
+        self._update_headers()
         self.retranslate()
         tr.language_changed.connect(self.retranslate)
 
-    def _build_grid(self, extensions, enabled):
+    def _build_grid(self, extensions, enabled, section_boxes):
         grid = QGridLayout()
         grid.setContentsMargins(0, 4, 0, 12)
         for i, ext in enumerate(extensions):
             cb = QCheckBox(ext)
             cb.setChecked(ext in enabled)
+            cb.toggled.connect(self._update_headers)
             self.checkboxes[ext] = cb
+            section_boxes.append(cb)
             grid.addWidget(cb, i // COLUMNS, i % COLUMNS)
         return grid
+
+    def _toggle_section(self, boxes, header):
+        # Clicking a partial (tri-state) header selects everything.
+        checked = header.checkState() != Qt.Unchecked
+        for cb in boxes:
+            cb.setChecked(checked)
+
+    def _update_headers(self):
+        for header, boxes in ((self.photos_header, self.photo_boxes),
+                              (self.videos_header, self.video_boxes)):
+            n = sum(1 for cb in boxes if cb.isChecked())
+            if n == 0:
+                header.setCheckState(Qt.Unchecked)
+            elif n == len(boxes):
+                header.setCheckState(Qt.Checked)
+            else:
+                header.setCheckState(Qt.PartiallyChecked)
 
     def _set_all(self, checked):
         for cb in self.checkboxes.values():
@@ -98,8 +126,8 @@ class FileTypesDialog(QDialog):
         self.setWindowTitle(tr.t("filetypes.title"))
         self.title_label.setText(tr.t("filetypes.title"))
         self.subtitle_label.setText(tr.t("filetypes.subtitle"))
-        self.photos_label.setText(tr.t("filetypes.photos"))
-        self.videos_label.setText(tr.t("filetypes.videos"))
+        self.photos_header.setText(tr.t("filetypes.photos"))
+        self.videos_header.setText(tr.t("filetypes.videos"))
         self.select_all_btn.setText(tr.t("filetypes.select_all"))
         self.select_none_btn.setText(tr.t("filetypes.select_none"))
-        self.close_btn.setText(tr.t("settings.close"))
+        self.close_btn.setText(tr.t("filetypes.confirm"))

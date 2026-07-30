@@ -63,7 +63,7 @@ if sys.platform == "darwin":
         bundle_identifier="com.dominikserafin.photovideosorter",
         info_plist={
             "NSHighResolutionCapable": True,
-            "CFBundleShortVersionString": "1.2.2",
+            "CFBundleShortVersionString": "1.2.3",
             "CFBundleName": "Photo & Video Sorter",
         },
     )

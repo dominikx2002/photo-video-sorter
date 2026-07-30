@@ -292,6 +292,16 @@ QCheckBox::indicator:checked {{
     background: {c['accent']};
     image: url("{_CHECK_SVG}");
 }}
+QCheckBox::indicator:indeterminate {{
+    border: none;
+    background: {c['accent']};
+}}
+QCheckBox#sectionHeader {{
+    color: {c['muted']};
+    font-size: 12px;
+    font-weight: 700;
+    padding-top: 8px;
+}}
 
 QPushButton[variant="primary"] {{
     background: {c['accent']};

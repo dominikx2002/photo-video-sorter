@@ -57,8 +57,9 @@ TRANSLATIONS = {
             '{total}</span> media file(s) across '
             '<span style="color: {color}; font-weight: bold;">{folders}</span> folder(s).'
         ),
-        "source.scan_media": "Photos &amp; videos to sort: {size}",
-        "source.scan_other": ('Other files (won\'t be copied): '
+        "source.scan_selected": "Selected photos &amp; videos to sort: {size}",
+        "source.scan_deselected": "Deselected types (won't be copied): {count} · {size}",
+        "source.scan_other": ('Other files, no photo/video extension (won\'t be copied): '
                               '<span style="color: {color}; font-weight: bold;">{count}</span> · {size}'),
         "source.scan_grand": "Everything in these folders: {count} files · {size}",
         "source.file_types": "File Types...",
@@ -87,6 +88,7 @@ TRANSLATIONS = {
         "filetypes.videos": "Videos",
         "filetypes.select_all": "Select All",
         "filetypes.select_none": "Select None",
+        "filetypes.confirm": "Confirm",
 
         "sorting.title": "Sorting Files",
         "sorting.subtitle": "Copying files into year/month folders. Originals are never modified or deleted.",
@@ -267,6 +269,7 @@ TRANSLATIONS = {
         "filetypes.videos": "Filmy",
         "filetypes.select_all": "Zaznacz wszystko",
         "filetypes.select_none": "Odznacz wszystko",
+        "filetypes.confirm": "Zatwierd\u017a",
 
         "sorting.title": "Sortowanie plik\u00f3w",
         "sorting.subtitle": "Kopiowanie plik\u00f3w do folder\u00f3w rok/miesi\u0105c. Orygina\u0142y nigdy nie s\u0105 modyfikowane ani usuwane.",

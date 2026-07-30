@@ -193,19 +193,25 @@ class SourceStep(QObject):
         if r is None:
             self.status_label.setText("")
             return
-        if r["total"] == 0 and r.get("non_media", 0) == 0:
-            self.status_label.setText(tr.t("source.scan_none_found"))
-            return
-        media_size = r.get("total_size", 0)
+        total = r["total"]
+        total_size = r.get("total_size", 0)
+        filtered = r.get("filtered", 0)
+        filtered_size = r.get("filtered_size", 0)
         non_media = r.get("non_media", 0)
         non_media_size = r.get("non_media_size", 0)
+        grand_count = total + filtered + non_media
+        grand_size = total_size + filtered_size + non_media_size
+        if grand_count == 0:
+            self.status_label.setText(tr.t("source.scan_none_found"))
+            return
         lines = [
-            tr.t("source.scan_found", color=accent(), total=r["total"], folders=r["folders"]),
-            tr.t("source.scan_media", size=human_size(media_size)),
-            tr.t("source.scan_other", color=accent(), count=non_media, size=human_size(non_media_size)),
-            tr.t("source.scan_grand", count=r["total"] + non_media,
-                 size=human_size(media_size + non_media_size)),
+            tr.t("source.scan_found", color=accent(), total=total, folders=r["folders"]),
+            tr.t("source.scan_selected", size=human_size(total_size)),
         ]
+        if filtered:
+            lines.append(tr.t("source.scan_deselected", count=filtered, size=human_size(filtered_size)))
+        lines.append(tr.t("source.scan_other", color=accent(), count=non_media, size=human_size(non_media_size)))
+        lines.append(tr.t("source.scan_grand", count=grand_count, size=human_size(grand_size)))
         self.status_label.setText("<br>".join(lines))
 
     def _render_found_types_label(self):
@@ -231,13 +237,16 @@ class SourceStep(QObject):
 
     def open_file_types(self):
         had_scan = self.scan_result is not None
-        if FileTypesDialog(self.window).exec() and had_scan:
-            # File-type selection changed after a scan already ran - the counts
-            # no longer reflect what would be sorted, so force a re-scan.
-            self.scan_result = None
-            self.continue_btn.setEnabled(False)
-            self._render_status_label()
+        if FileTypesDialog(self.window).exec():
             self._render_found_types_label()
+            # If a scan already ran, the type change makes its counts stale -
+            # so re-run the scan straight away with the new selection.
+            if had_scan:
+                self.scan_result = None
+                self.continue_btn.setEnabled(False)
+                self._render_status_label()
+                if self._selected_paths():
+                    self.scan_folder()
 
     def reset(self):
         for e in self.path_rows:
