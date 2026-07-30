@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QThread, Signal, QObject, Qt
 from sorter_logic import scan_source
+from sorter_logic.fsutil import human_size
 from sorter_logic.theme import mark_primary, mark_secondary, accent
 from sorter_logic.i18n import translator as tr
 from sorter_logic.settings_store import load_enabled_extensions
@@ -188,15 +189,24 @@ class SourceStep(QObject):
             e["remove"].setToolTip(tr.t("source.remove_tooltip"))
 
     def _render_status_label(self):
-        if self.scan_result is None:
+        r = self.scan_result
+        if r is None:
             self.status_label.setText("")
-        elif self.scan_result["total"] == 0:
+            return
+        if r["total"] == 0 and r.get("non_media", 0) == 0:
             self.status_label.setText(tr.t("source.scan_none_found"))
-        else:
-            self.status_label.setText(tr.t(
-                "source.scan_found", color=accent(),
-                total=self.scan_result["total"], folders=self.scan_result["folders"],
-            ))
+            return
+        media_size = r.get("total_size", 0)
+        non_media = r.get("non_media", 0)
+        non_media_size = r.get("non_media_size", 0)
+        lines = [
+            tr.t("source.scan_found", color=accent(), total=r["total"], folders=r["folders"]),
+            tr.t("source.scan_media", size=human_size(media_size)),
+            tr.t("source.scan_other", color=accent(), count=non_media, size=human_size(non_media_size)),
+            tr.t("source.scan_grand", count=r["total"] + non_media,
+                 size=human_size(media_size + non_media_size)),
+        ]
+        self.status_label.setText("<br>".join(lines))
 
     def _render_found_types_label(self):
         found = self.last_found_ext

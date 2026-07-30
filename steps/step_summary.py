@@ -59,13 +59,14 @@ class SummaryStep(QObject):
         self.log_path = None
         self._ok = None
         self.duplicates_removed = 0
+        self.skipped_files = []
 
         self.open_dest_btn.clicked.connect(self.open_destination_folder)
         self.open_log_btn.clicked.connect(self.open_log_file)
         self.start_new_btn.clicked.connect(self.start_new_requested.emit)
-
-        # Duplicates are now removed automatically during sorting, so there is
-        # nothing to review here - the button stays hidden.
+        # Repurpose the (now unused) review-duplicates button as the viewer for
+        # non-media files that were left behind.
+        self.review_dupes_btn.clicked.connect(self.open_skipped)
         self.review_dupes_btn.setVisible(False)
         self.retranslate()
 
@@ -76,8 +77,15 @@ class SummaryStep(QObject):
         self.open_dest_btn.setText(tr.t("summary.open_dest"))
         self.open_log_btn.setText(tr.t("summary.open_log"))
         self.start_new_btn.setText(tr.t("summary.start_new"))
+        self.review_dupes_btn.setText(tr.t("summary.view_skipped", count=len(self.skipped_files)))
         self._render_verify_label()
         self._render_log_path_label()
+
+    def open_skipped(self):
+        if not self.skipped_files:
+            return
+        from steps.skipped_files_dialog import SkippedFilesDialog
+        SkippedFilesDialog(self.skipped_files, self.window).exec()
 
     def _render_verify_label(self):
         if self._ok is None:
@@ -106,6 +114,9 @@ class SummaryStep(QObject):
         name = result.get("collection_name") or ""
         self.dest_path = os.path.join(dest, name) if name else dest
         self.duplicates_removed = stats.get("duplicates_removed", 0)
+        self.skipped_files = stats.get("skipped_files", [])
+        self.review_dupes_btn.setText(tr.t("summary.view_skipped", count=len(self.skipped_files)))
+        self.review_dupes_btn.setVisible(bool(self.skipped_files))
 
         for card in STAT_CARDS:
             self.number_labels[card].setText(str(stats.get(STAT_KEYS[card], 0)))

@@ -15,15 +15,16 @@ def save_language(code):
 
 
 def load_enabled_extensions():
-    """Returns the set of media extensions the user wants scanned. Defaults
-    to every supported extension the first time the app runs."""
-    stored = _settings().value("enabled_extensions", None)
-    if not stored:
-        return set(MEDIA_EXT)
+    """Returns the set of media extensions the user wants scanned. We persist
+    the DISABLED set (not the enabled one) so that any newly supported format
+    is on by default - the app must never silently miss a media file."""
+    stored = _settings().value("disabled_extensions", None)
     if isinstance(stored, str):
         stored = [stored]
-    return set(stored) & MEDIA_EXT
+    disabled = set(stored) if stored else set()
+    return MEDIA_EXT - disabled
 
 
 def save_enabled_extensions(extensions):
-    _settings().setValue("enabled_extensions", sorted(extensions))
+    disabled = MEDIA_EXT - set(extensions)
+    _settings().setValue("disabled_extensions", sorted(disabled))

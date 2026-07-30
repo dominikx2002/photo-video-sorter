@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QFrame
+    QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton,
+    QFrame, QScrollArea, QWidget
 )
 from sorter_logic.constants import PHOTO_EXT, VIDEO_EXT
 from sorter_logic.settings_store import load_enabled_extensions, save_enabled_extensions
@@ -13,7 +14,7 @@ class FileTypesDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setModal(True)
-        self.setFixedSize(440, 480)
+        self.setFixedSize(460, 560)
 
         enabled = load_enabled_extensions()
         self.checkboxes = {}
@@ -30,17 +31,29 @@ class FileTypesDialog(QDialog):
         self.subtitle_label.setWordWrap(True)
         layout.addWidget(self.subtitle_label)
 
+        # There are many extensions now, so the checkbox grids live in a
+        # scroll area between the header and the buttons.
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.viewport().setStyleSheet("background: transparent;")
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 4, 8, 0)
+
         self.photos_label = QLabel()
         self.photos_label.setProperty("muted", "true")
-        layout.addWidget(self.photos_label)
-        layout.addLayout(self._build_grid(sorted(PHOTO_EXT), enabled))
+        content_layout.addWidget(self.photos_label)
+        content_layout.addLayout(self._build_grid(sorted(PHOTO_EXT), enabled))
 
         self.videos_label = QLabel()
         self.videos_label.setProperty("muted", "true")
-        layout.addWidget(self.videos_label)
-        layout.addLayout(self._build_grid(sorted(VIDEO_EXT), enabled))
+        content_layout.addWidget(self.videos_label)
+        content_layout.addLayout(self._build_grid(sorted(VIDEO_EXT), enabled))
+        content_layout.addStretch(1)
 
-        layout.addStretch(1)
+        scroll.setWidget(content)
+        layout.addWidget(scroll, 1)
 
         select_row = QHBoxLayout()
         self.select_all_btn = QPushButton()

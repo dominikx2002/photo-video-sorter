@@ -48,6 +48,8 @@ def scan_source(src, allowed_extensions=None, detect_duplicates=False):
     total = 0
     total_size = 0
     unique_size = 0
+    non_media = 0
+    non_media_size = 0
     folders = set()
     by_ext = {}
     found_ext = {}
@@ -60,8 +62,14 @@ def scan_source(src, allowed_extensions=None, detect_duplicates=False):
                 if name.startswith("."):
                     continue
                 ext = os.path.splitext(name)[1].lower()
-                if ext in MEDIA_EXT:
-                    found_ext[ext] = found_ext.get(ext, 0) + 1
+                if ext not in MEDIA_EXT:
+                    non_media += 1
+                    try:
+                        non_media_size += os.path.getsize(os.path.join(dirpath, name))
+                    except OSError:
+                        pass
+                    continue
+                found_ext[ext] = found_ext.get(ext, 0) + 1
                 if ext not in allowed:
                     continue
                 total += 1
@@ -89,7 +97,8 @@ def scan_source(src, allowed_extensions=None, detect_duplicates=False):
                     unique_size += size
 
     result = {"total": total, "folders": len(folders), "by_ext": by_ext,
-              "found_ext": found_ext, "total_size": total_size}
+              "found_ext": found_ext, "total_size": total_size,
+              "non_media": non_media, "non_media_size": non_media_size}
     if detect_duplicates:
         result["duplicate_paths"] = duplicate_paths
         result["duplicate_count"] = len(duplicate_paths)

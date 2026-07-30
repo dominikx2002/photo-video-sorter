@@ -93,9 +93,13 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
     logline("-" * 70)
 
     stats = {"exif": 0, "takeout": 0, "filename": 0, "mtime": 0, "folder": 0,
-             "no_date": 0, "errors": 0, "scanned": 0, "skipped": 0, "cancelled": False,
-             "duplicates_removed": 0}
+             "no_date": 0, "errors": 0, "scanned": 0, "skipped": 0, "filtered": 0,
+             "cancelled": False, "duplicates_removed": 0}
     no_date_files = []
+    # Non-media files we did NOT copy, so the summary can list exactly what
+    # stays behind in the source (documents etc.) and would be lost if the user
+    # later deletes the source folder thinking everything is sorted.
+    skipped_files = []
 
     # Inline de-duplication: fingerprint each file (size + head/tail hash) as we
     # reach it and skip any whose content we've already copied. Duplicates are
@@ -133,11 +137,13 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
             src_file = os.path.join(dirpath, name)
 
             if ext not in allowed:
-                stats["skipped"] += 1
                 if ext in MEDIA_EXT:
+                    stats["filtered"] += 1
                     logline(f"[SKIP] Extension excluded by file-type filter: {src_file}")
                 else:
-                    logline(f"[SKIP] Not a recognized media file, ignored: {src_file}")
+                    stats["skipped"] += 1
+                    skipped_files.append(src_file)
+                    logline(f"[SKIP] Not a photo/video, left in place: {src_file}")
                 continue
 
             stats["scanned"] += 1
@@ -257,5 +263,6 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
         for f in no_date_files:
             logline(f"   - {f}", also_gui=False)
 
+    stats["skipped_files"] = skipped_files
     logfile.close()
     return stats, log_path

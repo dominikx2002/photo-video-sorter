@@ -57,10 +57,10 @@ TRANSLATIONS = {
             '{total}</span> media file(s) across '
             '<span style="color: {color}; font-weight: bold;">{folders}</span> folder(s).'
         ),
-        "source.scan_duplicates": (
-            '<span style="color: {color}; font-weight: bold;">{count}</span> '
-            'of them are duplicates and will be skipped (only unique files are copied).'
-        ),
+        "source.scan_media": "Photos &amp; videos to sort: {size}",
+        "source.scan_other": ('Other files (won\'t be copied): '
+                              '<span style="color: {color}; font-weight: bold;">{count}</span> · {size}'),
+        "source.scan_grand": "Everything in these folders: {count} files · {size}",
         "source.file_types": "File Types...",
         "source.found_types": "File types found: {breakdown}",
         "source.found_types_hint": "Use \"File Types...\" to exclude any you don't want to move.",
@@ -120,6 +120,7 @@ TRANSLATIONS = {
         "summary.skipped": "Non-Media Skipped",
         "summary.log_file": "Log file: {path}",
         "summary.duplicates_removed": "Removed {count} duplicate copy/copies (kept one of each).",
+        "summary.view_skipped": "View files left behind ({count})",
         "summary.open_dest": "Open Folder",
         "summary.open_log": "Open Log File",
         "summary.start_new": "Start New Sort",
@@ -138,18 +139,29 @@ TRANSLATIONS = {
         "settings.close": "Close",
         "settings.note": "The live sorting log stays in English regardless of this setting.",
 
+        "skipped.title": "Files Left Behind",
+        "skipped.subtitle": ("{count} non-media file(s) ({size}) stayed in your source folders - they "
+                             "were not copied. If you need them, move them yourself before deleting the "
+                             "originals so nothing is lost."),
+        "skipped.reveal": "Open First Folder",
+
         "compare.title": "Compare Folders",
-        "compare.subtitle": "Pick two folders and see how many photos and videos each one holds.",
-        "compare.folder_a": "Folder A:",
-        "compare.folder_b": "Folder B:",
+        "compare.subtitle": "Add any number of folders on each side, then compare what they hold.",
+        "compare.group_a": "Side A folders",
+        "compare.group_b": "Side B folders",
+        "compare.add": "+ Add folder",
         "compare.choose": "Choose…",
         "compare.compare": "Compare",
         "compare.scanning": "Scanning…",
-        "compare.pick_both": "Pick both folders first.",
-        "compare.count": "<b>{name}</b>: {count} media file(s)",
-        "compare.same": "✓ Both folders hold the same number of media files.",
-        "compare.diff": "{more} has {n} more media file(s) than {less}.",
-        "compare.tooltip": "Compare two folders",
+        "compare.pick_both": "Add at least one folder on each side first.",
+        "compare.side_a": "Side A",
+        "compare.side_b": "Side B",
+        "compare.side_media": "Photos &amp; videos: {count} · {size}",
+        "compare.side_other": "Other files: {count} · {size}",
+        "compare.side_total": "Total: {count} files · {size}",
+        "compare.verdict_more": "Side {more} has {n} more photos &amp; videos than side {less}.",
+        "compare.verdict_same": "✓ Both sides hold the same number of photos &amp; videos ({count}).",
+        "compare.tooltip": "Compare folders",
 
         "dupfinder.title": "Find Duplicates",
         "dupfinder.subtitle": "Scan a folder for identical photos and videos, then delete the redundant copies (one is kept from each set).",
@@ -225,10 +237,10 @@ TRANSLATIONS = {
             '{total}</span> plik(\u00f3w) multimedialnych w '
             '<span style="color: {color}; font-weight: bold;">{folders}</span> folderze/folderach.'
         ),
-        "source.scan_duplicates": (
-            'w tym <span style="color: {color}; font-weight: bold;">{count}</span> '
-            'duplikat\u00f3w \u2013 zostan\u0105 pomini\u0119te (kopiowane s\u0105 tylko unikalne pliki).'
-        ),
+        "source.scan_media": "Zdj\u0119cia i filmy do posortowania: {size}",
+        "source.scan_other": ('Inne pliki (nie zostan\u0105 skopiowane): '
+                              '<span style="color: {color}; font-weight: bold;">{count}</span> \u00b7 {size}'),
+        "source.scan_grand": "Wszystko w tych folderach: {count} plik\u00f3w \u00b7 {size}",
         "source.file_types": "Typy plik\u00f3w...",
         "source.found_types": "Znalezione typy plik\u00f3w: {breakdown}",
         "source.found_types_hint": "U\u017cyj \"Typy plik\u00f3w...\", aby wykluczy\u0107 te, kt\u00f3rych nie chcesz przenosi\u0107.",
@@ -288,6 +300,7 @@ TRANSLATIONS = {
         "summary.skipped": "Pomini\u0119te pliki",
         "summary.log_file": "Plik logu: {path}",
         "summary.duplicates_removed": "Usuni\u0119to {count} zduplikowanych kopii (zostawiono po jednej).",
+        "summary.view_skipped": "Zobacz pozostawione pliki ({count})",
         "summary.open_dest": "Otw\u00f3rz folder",
         "summary.open_log": "Otw\u00f3rz log",
         "summary.start_new": "Nowe sortowanie",
@@ -306,18 +319,29 @@ TRANSLATIONS = {
         "settings.close": "Zamknij",
         "settings.note": "Log sortowania na \u017cywo zawsze pozostaje w j\u0119zyku angielskim.",
 
+        "skipped.title": "Pozostawione pliki",
+        "skipped.subtitle": ("{count} plik(\u00f3w) nie-multimedialnych ({size}) zosta\u0142o w folderach \u017ar\u00f3d\u0142owych - "
+                             "nie zosta\u0142y skopiowane. Je\u015bli ich potrzebujesz, przenie\u015b je samodzielnie przed "
+                             "usuni\u0119ciem orygina\u0142\u00f3w, \u017ceby nic nie zgin\u0119\u0142o."),
+        "skipped.reveal": "Otw\u00f3rz pierwszy folder",
+
         "compare.title": "Por\u00f3wnaj foldery",
-        "compare.subtitle": "Wybierz dwa foldery i sprawd\u017a, ile zdj\u0119\u0107 i film\u00f3w zawiera ka\u017cdy z nich.",
-        "compare.folder_a": "Folder A:",
-        "compare.folder_b": "Folder B:",
+        "compare.subtitle": "Dodaj dowoln\u0105 liczb\u0119 folder\u00f3w po ka\u017cdej stronie i por\u00f3wnaj ich zawarto\u015b\u0107.",
+        "compare.group_a": "Foldery \u2014 strona A",
+        "compare.group_b": "Foldery \u2014 strona B",
+        "compare.add": "+ Dodaj folder",
         "compare.choose": "Wybierz\u2026",
         "compare.compare": "Por\u00f3wnaj",
         "compare.scanning": "Skanowanie\u2026",
-        "compare.pick_both": "Najpierw wybierz oba foldery.",
-        "compare.count": "<b>{name}</b>: {count} plik(\u00f3w) multimedialnych",
-        "compare.same": "\u2713 Oba foldery maj\u0105 tyle samo plik\u00f3w multimedialnych.",
-        "compare.diff": "{more} ma o {n} plik(\u00f3w) multimedialnych wi\u0119cej ni\u017c {less}.",
-        "compare.tooltip": "Por\u00f3wnaj dwa foldery",
+        "compare.pick_both": "Najpierw dodaj po jednym folderze z ka\u017cdej strony.",
+        "compare.side_a": "Strona A",
+        "compare.side_b": "Strona B",
+        "compare.side_media": "Zdj\u0119cia i filmy: {count} \u00b7 {size}",
+        "compare.side_other": "Inne pliki: {count} \u00b7 {size}",
+        "compare.side_total": "Razem: {count} plik\u00f3w \u00b7 {size}",
+        "compare.verdict_more": "Strona {more} ma o {n} zdj\u0119\u0107 i film\u00f3w wi\u0119cej ni\u017c strona {less}.",
+        "compare.verdict_same": "\u2713 Obie strony maj\u0105 tyle samo zdj\u0119\u0107 i film\u00f3w ({count}).",
+        "compare.tooltip": "Por\u00f3wnaj foldery",
 
         "dupfinder.title": "Znajd\u017a duplikaty",
         "dupfinder.subtitle": "Przeskanuj folder w poszukiwaniu identycznych zdj\u0119\u0107 i film\u00f3w, a potem usu\u0144 zb\u0119dne kopie (z ka\u017cdego zestawu jedna zostaje).",
