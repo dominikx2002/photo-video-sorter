@@ -1,7 +1,7 @@
 import sys
 import os
 import subprocess
-from PySide6.QtWidgets import QApplication, QPushButton, QLabel, QFrame
+from PySide6.QtWidgets import QApplication, QPushButton, QLabel, QFrame, QSizePolicy, QGridLayout
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtCore import QFile, QObject, Signal
 from sorter_logic.theme import mark_primary, mark_secondary, apply_card_shadow, COLOR_GREEN, COLOR_ORANGE
@@ -54,6 +54,19 @@ class SummaryStep(QObject):
         mark_secondary(self.open_log_btn)
         mark_secondary(self.review_dupes_btn)
         mark_primary(self.start_new_btn)
+
+        # Lay the four action buttons out as a 2x2 grid where each fills half the
+        # row, so even the longest labels (e.g. Polish) stay fully visible at the
+        # minimum window width instead of being clipped in a single cramped row.
+        for btn in (self.open_dest_btn, self.open_log_btn,
+                    self.review_dupes_btn, self.start_new_btn):
+            btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            btn.setMinimumWidth(0)
+        # Equal columns so neither button in a row can starve the other and clip
+        # its (sometimes long, e.g. Polish) label.
+        nav_grid = self.window.findChild(QGridLayout, "navLayout")
+        nav_grid.setColumnStretch(0, 1)
+        nav_grid.setColumnStretch(1, 1)
 
         self.dest_path = None
         self.log_path = None
@@ -117,6 +130,14 @@ class SummaryStep(QObject):
         self.skipped_files = stats.get("skipped_files", [])
         self.review_dupes_btn.setText(tr.t("summary.view_skipped", count=len(self.skipped_files)))
         self.review_dupes_btn.setVisible(bool(self.skipped_files))
+        # When there's nothing to review, let "Start New Sort" fill the bottom row
+        # instead of leaving an empty cell beside it.
+        grid = self.window.findChild(QGridLayout, "navLayout")
+        grid.removeWidget(self.start_new_btn)
+        if self.skipped_files:
+            grid.addWidget(self.start_new_btn, 1, 1)
+        else:
+            grid.addWidget(self.start_new_btn, 1, 0, 1, 2)
 
         for card in STAT_CARDS:
             self.number_labels[card].setText(str(stats.get(STAT_KEYS[card], 0)))

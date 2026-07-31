@@ -1,7 +1,7 @@
 import os
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog,
-    QWidget,
+    QWidget, QScrollArea, QFrame,
 )
 from PySide6.QtCore import Qt, QObject, QThread, Signal
 from sorter_logic import scan_source
@@ -21,13 +21,21 @@ class _FolderList(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(6)
-        self.rows_layout = QVBoxLayout()
-        self.rows_layout.setContentsMargins(0, 0, 0, 0)
+        # Rows live in a transparent scroll area that grows to fit up to a few
+        # rows, then scrolls - the same behaviour as step 2.
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.NoFrame)
+        self.scroll.viewport().setStyleSheet("background: transparent;")
+        container = QWidget()
+        self.rows_layout = QVBoxLayout(container)
+        self.rows_layout.setContentsMargins(0, 0, 10, 0)
         self.rows_layout.setSpacing(6)
-        outer.addLayout(self.rows_layout)
+        self.scroll.setWidget(container)
+        outer.addWidget(self.scroll)
         self.add_btn = QPushButton()
         mark_secondary(self.add_btn)
-        self.add_btn.clicked.connect(lambda: self.add_row(browse=True))
+        self.add_btn.clicked.connect(lambda: self.add_row())
         outer.addWidget(self.add_btn)
         self.add_row()
 
@@ -73,9 +81,11 @@ class _FolderList(QWidget):
         self._update_state()
 
     def _update_state(self):
-        only_one = len(self.rows) <= 1
+        multiple = len(self.rows) > 1
         for e in self.rows:
-            e["remove"].setEnabled(not only_one)
+            e["remove"].setVisible(multiple)
+        visible = min(max(len(self.rows), 1), 3)
+        self.scroll.setFixedHeight(visible * 44 + 8)
 
     def paths(self):
         seen, out = set(), []

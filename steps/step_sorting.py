@@ -2,12 +2,15 @@ import sys
 import os
 import html
 from datetime import datetime
-from PySide6.QtWidgets import QApplication, QPushButton, QLabel, QProgressBar, QPlainTextEdit, QWidget, QGraphicsOpacityEffect
+from PySide6.QtWidgets import QApplication, QPushButton, QLabel, QProgressBar, QPlainTextEdit, QWidget, QGraphicsOpacityEffect, QVBoxLayout
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtCore import QFile, QThread, Signal, QObject, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import QFile, QThread, Signal, QObject, QPropertyAnimation, QEasingCurve, Qt
 from sorter_logic import run_sort
-from sorter_logic.theme import mark_primary, mark_secondary
+from sorter_logic.theme import mark_primary, mark_secondary, accent
 from sorter_logic.i18n import translator as tr
+from shimmer_progress import replace_progressbar
+from activity_loader import SpinnerTrivia
+from svg_icon import colored_svg_datauri
 from paths import resource_path
 
 # Bright, terminal-style palette - the log renders white-on-dark, so these are
@@ -56,7 +59,8 @@ class SortWorker(QObject):
     error = Signal(str)
 
     def __init__(self, parent_name, src, dst, use_folder_date, log_path, should_cancel=None,
-                 use_mtime=True, use_filename_date=True, allowed_extensions=None, rename_to_date=False):
+                 use_mtime=True, use_filename_date=True, allowed_extensions=None, rename_to_date=False,
+                 move_files=False, folder_template="year_month"):
         super().__init__()
         self.parent_name = parent_name
         self.src = src
@@ -66,6 +70,8 @@ class SortWorker(QObject):
         self.use_filename_date = use_filename_date
         self.allowed_extensions = allowed_extensions
         self.rename_to_date = rename_to_date
+        self.move_files = move_files
+        self.folder_template = folder_template
         self.log_path = log_path
         self.should_cancel = should_cancel
 
@@ -79,6 +85,8 @@ class SortWorker(QObject):
                 allowed_extensions=self.allowed_extensions,
                 rename_to_date=self.rename_to_date,
                 on_file=self.current_file.emit,
+                move_files=self.move_files,
+                folder_template=self.folder_template,
             )
             self.finished.emit(stats, log_path)
         except Exception as e:
@@ -101,7 +109,7 @@ class SortingStep(QObject):
         self.subtitle_label = self.window.findChild(QLabel, "subtitleLabel")
         self.summary_label = self.window.findChild(QLabel, "summaryLabel")
         self.start_btn = self.window.findChild(QPushButton, "startButton")
-        self.progress_bar = self.window.findChild(QProgressBar, "sortProgressBar")
+        self.progress_bar = replace_progressbar(self.window, "sortProgressBar")
         self.progress_label = self.window.findChild(QLabel, "progressLabel")
         self.current_file_label = self.window.findChild(QLabel, "currentFileLabel")
         self.log_view = self.window.findChild(QPlainTextEdit, "logView")
@@ -117,6 +125,7 @@ class SortingStep(QObject):
         self.title_label.setProperty("heading", "true")
         self.subtitle_label.setProperty("subheading", "true")
         self.summary_label.setProperty("muted", "true")
+        self.summary_label.setTextFormat(Qt.RichText)
         self.progress_label.setProperty("muted", "true")
         self.current_file_label.setProperty("muted", "true")
         mark_primary(self.start_btn)
@@ -125,7 +134,7 @@ class SortingStep(QObject):
         mark_secondary(self.cancel_btn)
 
         self.progress_bar.setTextVisible(False)
-        self.progress_anim = QPropertyAnimation(self.progress_bar, b"value", self)
+        self.progress_anim = QPropertyAnimation(self.progress_bar, b"animValue", self)
         self.progress_anim.setDuration(250)
         self.progress_anim.setEasingCurve(QEasingCurve.OutCubic)
 
@@ -144,6 +153,16 @@ class SortingStep(QObject):
         self.pulse_anim.setKeyValueAt(1.0, 1.0)
         self.pulse_anim.setEasingCurve(QEasingCurve.InOutSine)
         self.pulse_anim.setLoopCount(-1)
+
+        # A spinner with rotating "what sorting does" trivia - the same alive
+        # indicator as the duplicate scanner - in place of the old show-details
+        # disclosure and log terminal (the full log is still written to file).
+        self.trivia = SpinnerTrivia()
+        self.trivia.hide()
+        layout = self.window.findChild(QVBoxLayout, "verticalLayout")
+        layout.insertWidget(layout.indexOf(self.current_file_label) + 1, self.trivia)
+        self.details_toggle_btn.hide()
+        self.log_view.hide()
 
         self.start_btn.clicked.connect(self.start_sorting)
         self.continue_btn.clicked.connect(self.continue_requested.emit)
@@ -165,7 +184,8 @@ class SortingStep(QObject):
 
     def retranslate(self):
         self.title_label.setText(tr.t("sorting.title"))
-        self.subtitle_label.setText(tr.t("sorting.subtitle"))
+        moving = bool(self.context and self.context.get("move_files"))
+        self.subtitle_label.setText(tr.t("sorting.subtitle_move" if moving else "sorting.subtitle"))
         self.start_btn.setText(tr.t("sorting.start"))
         self.cancel_btn.setText(tr.t("sorting.cancel"))
         self.continue_btn.setText(tr.t("sorting.view_summary"))
@@ -201,14 +221,31 @@ class SortingStep(QObject):
         dest_path = self.context["dest_path"]
         collection_name = self.context["collection_name"]
         dst = os.path.join(dest_path, collection_name) if collection_name else dest_path
-        filename_fallback = tr.t("sorting.fallback_on") if self.context["use_filename_date"] else tr.t("sorting.fallback_off")
-        mtime_fallback = tr.t("sorting.fallback_on") if self.context["use_mtime"] else tr.t("sorting.fallback_off")
-        fallback = tr.t("sorting.fallback_on") if self.context["use_folder_date"] else tr.t("sorting.fallback_off")
-        rename = tr.t("sorting.fallback_on") if self.context["rename_to_date"] else tr.t("sorting.fallback_off")
+        on, off = self._mark(True), self._mark(False)
+        filename_fallback = on if self.context["use_filename_date"] else off
+        mtime_fallback = on if self.context["use_mtime"] else off
+        fallback = on if self.context["use_folder_date"] else off
+        rename = on if self.context["rename_to_date"] else off
         self.summary_label.setText(tr.t(
             "sorting.summary", src=src_path, dst=dst, filename_fallback=filename_fallback,
             mtime_fallback=mtime_fallback, fallback=fallback, rename=rename,
         ))
+
+    def _mark(self, on):
+        # A round check (accent colour) when on, a round x (white) when off -
+        # rendered from the SVG icons, tinted to the live theme. Falls back to a
+        # text glyph if an icon file is missing.
+        if on:
+            icon = colored_svg_datauri(resource_path("packaging/icons/check-round.svg"), accent())
+            return icon or f'<span style="color:{accent()};">&#x2714;</span>'
+        icon = colored_svg_datauri(resource_path("packaging/icons/uncheck-round.svg"), "#FFFFFF")
+        return icon or '<span style="color:#FFFFFF;">&#x2715;</span>'
+
+    def _facts(self):
+        facts = [tr.t(f"sorting.fact_{i}") for i in range(1, 8)]
+        if self.context and self.context.get("move_files"):
+            facts[1] = tr.t("sorting.fact_2_move")   # the "copying only" fact
+        return facts
 
     def _render_progress_label(self):
         state = self._progress_state
@@ -218,18 +255,23 @@ class SortingStep(QObject):
             _, done, total = state
             pct = int(done / total * 100) if total else 100
             self.progress_label.setText(tr.t("sorting.progress", done=done, total=total, pct=pct))
+        elif state[0] == "complete":
+            # Same "100% — done" wording as the duplicate finder at 100%.
+            self.progress_label.setText(tr.t("progress.done", pct=100))
         else:
             self.progress_label.setText(tr.t(f"sorting.{state[0]}"))
 
     def _render_current_file_label(self):
         if self._current_file_name:
-            self.current_file_label.setText(tr.t("sorting.current_file", name=self._current_file_name))
+            moving = bool(self.context and self.context.get("move_files"))
+            key = "sorting.current_file_move" if moving else "sorting.current_file"
+            self.current_file_label.setText(tr.t(key, name=self._current_file_name))
         else:
             self.current_file_label.setText("")
 
     def set_context(self, src_path, dest_path, collection_name, use_folder_date,
                      use_mtime=True, use_filename_date=True, allowed_extensions=None,
-                     rename_to_date=False):
+                     rename_to_date=False, move_files=False, folder_template="year_month"):
         self.context = {
             "src_path": src_path,
             "dest_path": dest_path,
@@ -239,7 +281,11 @@ class SortingStep(QObject):
             "use_filename_date": use_filename_date,
             "allowed_extensions": allowed_extensions,
             "rename_to_date": rename_to_date,
+            "move_files": move_files,
+            "folder_template": folder_template,
         }
+        self.subtitle_label.setText(
+            tr.t("sorting.subtitle_move" if move_files else "sorting.subtitle"))
         self._render_summary_label()
         self._reset_ui()
 
@@ -264,15 +310,12 @@ class SortingStep(QObject):
         self.progress_bar.setValue(0)
         self.progress_label.hide()
         self._render_progress_label()
-        self.pulse_anim.stop()
+        self.trivia.stop()
+        self.trivia.hide()
         self.current_file_label.hide()
         self._render_current_file_label()
-        self._details_open = False
-        self.details_toggle_btn.hide()
         self.details_spacer.hide()
-        self.log_view.hide()
         self.log_view.clear()
-        self._render_details_toggle()
         self.continue_btn.setEnabled(False)
         self.back_btn.setEnabled(True)
         self.cancel_btn.hide()
@@ -287,14 +330,11 @@ class SortingStep(QObject):
         self.progress_bar.show()
         self.progress_label.show()
         self.current_file_label.show()
-        self.pulse_anim.start()
-        # Log stays collapsed behind "Show details"; the spacer holds the nav
-        # at the bottom while the terminal is hidden.
-        self._details_open = False
-        self.log_view.hide()
-        self.details_toggle_btn.show()
+        # Spinner + sorting trivia keeps the view alive; the spacer holds the nav
+        # at the bottom. The log is written to file, not shown in the UI.
+        self.trivia.start(self._facts())
+        self.trivia.show()
         self.details_spacer.show()
-        self._render_details_toggle()
         self.back_btn.setEnabled(False)
         self.cancel_btn.show()
         self.cancel_btn.setEnabled(True)
@@ -310,6 +350,8 @@ class SortingStep(QObject):
             use_filename_date=self.context["use_filename_date"],
             allowed_extensions=self.context["allowed_extensions"],
             rename_to_date=self.context["rename_to_date"],
+            move_files=self.context["move_files"],
+            folder_template=self.context["folder_template"],
         )
         self.worker.moveToThread(self.thread)
 
@@ -345,9 +387,13 @@ class SortingStep(QObject):
     def on_finished(self, stats, log_path):
         self.stats = stats
         self.log_path = log_path
+        if not stats.get("cancelled"):
+            self.progress_anim.stop()
+            self.progress_bar.setValue(self.progress_bar.maximum())     # snap to full
         self._progress_state = ("cancelled",) if stats.get("cancelled") else ("complete",)
         self._render_progress_label()
-        self.pulse_anim.stop()
+        self.trivia.stop()
+        self.trivia.hide()
         self._current_file_name = None
         self._render_current_file_label()
         self.current_file_label.hide()
@@ -361,7 +407,8 @@ class SortingStep(QObject):
         self.append_log(f"[ERROR] {message}")
         self._progress_state = ("failed",)
         self._render_progress_label()
-        self.pulse_anim.stop()
+        self.trivia.stop()
+        self.trivia.hide()
         self._current_file_name = None
         self._render_current_file_label()
         self.current_file_label.hide()

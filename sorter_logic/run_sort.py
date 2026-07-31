@@ -11,9 +11,25 @@ from .dates import (
 from .fsutil import unique_path
 from .scan_source import scan_source, file_fingerprint
 
+# Folder layouts the user can pick in the advanced options. Each maps a resolved
+# date to the sub-path (under the collection) the file is filed into.
+FOLDER_TEMPLATES = ("year_month", "year_slash_month", "year", "year_month_flat")
+
+
+def template_subpath(template, dt):
+    if template == "year":
+        return f"{dt.year:04d}"
+    if template == "year_slash_month":
+        return os.path.join(f"{dt.year:04d}", f"{dt.month:02d}")
+    if template == "year_month_flat":
+        return f"{dt.year:04d}-{dt.month:02d}"
+    return os.path.join(f"{dt.year:04d}", f"{dt.year:04d}-{dt.month:02d}")  # year_month
+
+
 def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
              should_cancel=None, use_mtime=True, use_filename_date=True,
-             allowed_extensions=None, rename_to_date=False, on_file=None):
+             allowed_extensions=None, rename_to_date=False, on_file=None,
+             move_files=False, folder_template="year_month"):
     """
     Runs the sort. Talks to the caller only through callbacks:
       log(msg)               -> one line of text, for the live log view
@@ -89,6 +105,8 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
     logline(f"File-modified-date fallback: {'enabled' if use_mtime else 'disabled'}")
     logline(f"Folder-name date fallback:  {'enabled' if use_folder_date else 'disabled'}")
     logline(f"Rename files to their date:  {'enabled' if rename_to_date else 'disabled'}")
+    logline(f"Mode:                       {'MOVE (originals removed from source)' if move_files else 'COPY (originals kept)'}")
+    logline(f"Folder template:            {folder_template}")
     logline(f"Log file:                   {log_path}")
     logline("-" * 70)
 
@@ -108,9 +126,14 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
     #   fingerprint -> source path of the copy we kept
     seen = {}
 
+    verb = "MOVE" if move_files else "COPY"
+
     def copy_file(src_file, dest_dir, copy_name):
         target = unique_path(dest_dir, copy_name)
-        shutil.copy2(src_file, target)
+        if move_files:
+            shutil.move(src_file, target)
+        else:
+            shutil.copy2(src_file, target)
         return target
 
     scan = scan_source(src, allowed)
@@ -214,7 +237,7 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
                         no_date_files.append(src_file)
                         logline(f"[NO DATE] {name} -> no date found from any source, copied to _NoEXIF_review")
                 else:
-                    dest_dir = os.path.join(out_base, f"{dt.year:04d}", f"{dt.year:04d}-{dt.month:02d}")
+                    dest_dir = os.path.join(out_base, template_subpath(folder_template, dt))
                     os.makedirs(dest_dir, exist_ok=True)
                     copy_name = name
                     if rename_to_date:
@@ -223,7 +246,7 @@ def run_sort(parent, src, dst_root, use_folder_date, log_path, log, progress,
                     target = copy_file(src_file, dest_dir, copy_name)
                     if target:
                         stats[source] += 1
-                        logline(f"[COPY] {name} -> {target}")
+                        logline(f"[{verb}] {name} -> {target}")
 
             except Exception as e:
                 stats["errors"] += 1

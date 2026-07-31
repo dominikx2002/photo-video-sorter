@@ -15,7 +15,10 @@ class FileTypesDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setModal(True)
-        self.setFixedSize(460, 560)
+        # Resizable: 460x560 is the minimum; enlarging the dialog grows the
+        # extension list and its scrollbar disappears once everything fits.
+        self.setMinimumSize(460, 560)
+        self.resize(460, 560)
 
         enabled = load_enabled_extensions()
         self.checkboxes = {}

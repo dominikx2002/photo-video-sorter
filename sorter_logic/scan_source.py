@@ -122,7 +122,8 @@ def count_media_files(src, allowed_extensions=None):
     return scan_source(src, allowed_extensions)["total"]
 
 
-def find_duplicate_groups(path, allowed_extensions=None, progress=None, should_cancel=None):
+def find_duplicate_groups(path, allowed_extensions=None, progress=None,
+                          should_cancel=None, activity=None):
     """Find identical media files under a folder, returned as a list of groups
     (each a sorted list of 2+ paths, largest groups first).
 
@@ -134,12 +135,16 @@ def find_duplicate_groups(path, allowed_extensions=None, progress=None, should_c
     library sitting on an external drive.
 
     progress(done, total), if given, is called as candidates are fingerprinted
-    so the UI can show it isn't frozen."""
+    so the UI can show it isn't frozen. activity(phase, name), if given, streams
+    what's happening right now - ("walk", folder) while indexing, ("read", file)
+    while fingerprinting - so the UI can show a live log line."""
     allowed = allowed_extensions if allowed_extensions is not None else MEDIA_EXT
     by_size = {}
     for dirpath, _, filenames in os.walk(path):
         if should_cancel and should_cancel():
             return []
+        if activity:
+            activity("walk", os.path.basename(dirpath) or dirpath)
         for name in filenames:
             if name.startswith("."):
                 continue
@@ -165,6 +170,8 @@ def find_duplicate_groups(path, allowed_extensions=None, progress=None, should_c
             pass
         if progress and (i % 25 == 0):
             progress(i + 1, total)
+        if activity and (i % 25 == 0):
+            activity("read", os.path.basename(fp))
     if progress:
         progress(total, total)
 

@@ -133,8 +133,8 @@ def _tokens(dark, accent_color):
         "accent_hover": hx(_mix(a, white, 0.10)),
         "accent_press": hx(_mix(a, black, 0.14)),
         "accent_disabled": hx(_mix(a, canvas, 0.60)),
-        "hover_bg": hx(_mix(surface, ink, 0.08)),
-        "press_bg": hx(_mix(surface, ink, 0.14)),
+        "hover_bg": hx(_mix(surface, ink, 0.13)),
+        "press_bg": hx(_mix(surface, ink, 0.20)),
         "soft": hx(soft),
         "surface": hx(surface),
         "canvas": hx(canvas),
@@ -215,6 +215,20 @@ QLabel[heading="true"] {{
 QLabel[subheading="true"] {{ color: {c['muted']}; font-size: 13px; }}
 QLabel[lead="true"] {{ color: {c['ink']}; font-size: 15px; }}
 QLabel[muted="true"] {{ color: {c['muted']}; font-size: 12px; }}
+QLabel#activityLog {{ color: {c['muted']}; font-size: 11px; }}
+QLabel#spinnerGlyph {{ color: {c['accent']}; font-size: 11px; font-weight: 700; }}
+QLabel#triviaText {{ color: {c['muted']}; font-size: 11px; font-style: italic; }}
+QToolButton#advancedToggle {{
+    color: {c['ink']};
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    padding: 4px 0;
+}}
+QToolButton#advancedToggle:hover {{ color: {c['accent']}; }}
+QLabel#optionDesc {{ color: {c['muted']}; font-size: 11px; padding: 0 0 6px 24px; }}
+QLabel#optionHeading {{ color: {c['ink']}; font-size: 12px; font-weight: 600; padding: 8px 0 4px 0; }}
 QLabel[cardNumber="true"] {{ color: {c['ink']}; font-size: 23px; font-weight: 700; }}
 
 QFrame[card="true"] {{
@@ -330,7 +344,7 @@ QPushButton[variant="secondary"] {{
     font-size: 13px;
     font-weight: 600;
 }}
-QPushButton[variant="secondary"]:hover {{ background: {c['hover_bg']}; }}
+QPushButton[variant="secondary"]:hover {{ background: {c['hover_bg']}; border-color: {c['faint']}; }}
 QPushButton[variant="secondary"]:pressed {{ background: {c['press_bg']}; }}
 QPushButton[variant="secondary"]:disabled {{
     color: {c['faint']};

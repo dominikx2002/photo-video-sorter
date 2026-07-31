@@ -278,42 +278,29 @@
     </spacer>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="navLayout">
-     <item>
+    <layout class="QGridLayout" name="navLayout">
+     <item row="0" column="0">
       <widget class="QPushButton" name="openDestButton">
        <property name="text">
         <string>Open Destination Folder</string>
        </property>
       </widget>
      </item>
-     <item>
+     <item row="0" column="1">
       <widget class="QPushButton" name="openLogButton">
        <property name="text">
         <string>Open Log File</string>
        </property>
       </widget>
      </item>
-     <item>
+     <item row="1" column="0">
       <widget class="QPushButton" name="reviewDuplicatesButton">
        <property name="text">
         <string>Review Duplicates</string>
        </property>
       </widget>
      </item>
-     <item>
-      <spacer name="navSpacer">
-       <property name="orientation">
-        <enum>Qt::Orientation::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
+     <item row="1" column="1">
       <widget class="QPushButton" name="startNewButton">
        <property name="text">
         <string>Start New Sort</string>

@@ -39,9 +39,11 @@ class WizardApp:
         # show, see enable_tahoe_chrome) shows through the frosted panes.
         if VIBRANCY:
             self.main_window.setAttribute(Qt.WA_TranslucentBackground, True)
-        # Fixed, non-resizable setup window - compact, like a native macOS
-        # utility panel. Height covers the slim top bar.
-        self.main_window.setFixedSize(760, 552)
+        # Resizable window: the compact 760x552 layout is the *minimum*, and the
+        # user can stretch it as large as they like - the content pane grows while
+        # the sidebar keeps its width.
+        self.main_window.setMinimumSize(760, 552)
+        self.main_window.resize(760, 552)
 
         root_layout = QVBoxLayout(self.main_window)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -74,6 +76,8 @@ class WizardApp:
         tr.set_language(load_language(), _emit=False)
 
         self.sidebar = load_ui("ui/sidebar.ui")
+        # Keep the sidebar a constant width; extra window width goes to content.
+        self.sidebar.setFixedWidth(212)
         main_layout.addWidget(self.sidebar)
 
         # A short vertical line inset from the top/bottom edges (not a full-height
@@ -81,7 +85,7 @@ class WizardApp:
         divider_container = QWidget()
         divider_container.setFixedWidth(1)
         divider_layout = QVBoxLayout(divider_container)
-        divider_layout.setContentsMargins(0, 18, 0, 18)
+        divider_layout.setContentsMargins(0, 0, 0, 0)
         divider_layout.setSpacing(0)
         divider_line = QWidget()
         divider_line.setObjectName("sidebarDivider")
@@ -89,7 +93,7 @@ class WizardApp:
         main_layout.addWidget(divider_container)
 
         self.stack = QStackedWidget()
-        main_layout.addWidget(self.stack)
+        main_layout.addWidget(self.stack, 1)      # content pane absorbs resize
 
         root_layout.addWidget(body)
 
@@ -201,6 +205,7 @@ class WizardApp:
             dest_data["collection_name"], dest_data["use_folder_date"],
             dest_data["use_mtime"], dest_data["use_filename_date"],
             source_data["allowed_extensions"], dest_data["rename_to_date"],
+            dest_data["move_files"], dest_data["folder_template"],
         )
         self.completed_steps.add(2)
         self.goto(3)

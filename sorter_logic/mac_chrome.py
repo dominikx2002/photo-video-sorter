@@ -144,6 +144,73 @@ def _hide_backdrops(widget):
         pass
 
 
+# NSActivityUserInitiatedAllowingIdleSystemSleep: tell macOS we're doing
+# user-initiated work so App Nap won't suspend the process, while still letting
+# the machine sleep if it's genuinely idle.
+_NS_ACTIVITY_USER_INITIATED = 0x00FFFFFF
+
+
+def begin_activity(reason="Working"):
+    """Prevent App Nap while a long operation runs. Without this, macOS can
+    suspend the whole process (background worker thread included) as soon as the
+    app loses focus, which freezes an in-progress scan until you switch back.
+    Returns an opaque token to hand to end_activity(), or None if unavailable."""
+    if _objc is None or sys.platform != "darwin":
+        return None
+    try:
+        pinfo = _msg(_cls("NSProcessInfo"), _sel("processInfo"))
+        if not pinfo:
+            return None
+        nsreason = _msg(_cls("NSString"), _sel("stringWithUTF8String:"),
+                        reason.encode("utf-8"), argtypes=[ctypes.c_char_p])
+        token = _msg(pinfo, _sel("beginActivityWithOptions:reason:"),
+                     ctypes.c_ulonglong(_NS_ACTIVITY_USER_INITIATED), nsreason,
+                     argtypes=[ctypes.c_ulonglong, ctypes.c_void_p])
+        if not token:
+            return None
+        _msg(token, _sel("retain"))      # keep it alive until we end the activity
+        return token
+    except Exception:
+        return None
+
+
+def end_activity(token):
+    """Release an activity token from begin_activity(), letting App Nap resume."""
+    if _objc is None or token is None or sys.platform != "darwin":
+        return
+    try:
+        pinfo = _msg(_cls("NSProcessInfo"), _sel("processInfo"))
+        _msg(pinfo, _sel("endActivity:"), token, argtypes=[ctypes.c_void_p])
+        _msg(token, _sel("release"))
+    except Exception:
+        pass
+
+
+def move_to_trash(path):
+    """Move a file to the macOS Trash (recoverable) instead of erasing it, via
+    NSFileManager. Returns True on success; False if unavailable or it failed,
+    so callers can fall back. No third-party dependency needed."""
+    if _objc is None or sys.platform != "darwin":
+        return False
+    try:
+        fm = _msg(_cls("NSFileManager"), _sel("defaultManager"))
+        if not fm:
+            return False
+        nsstr = _msg(_cls("NSString"), _sel("stringWithUTF8String:"),
+                     path.encode("utf-8"), argtypes=[ctypes.c_char_p])
+        url = _msg(_cls("NSURL"), _sel("fileURLWithPath:"), nsstr,
+                   argtypes=[ctypes.c_void_p])
+        if not url:
+            return False
+        ok = _msg(fm, _sel("trashItemAtURL:resultingItemURL:error:"),
+                  url, ctypes.c_void_p(0), ctypes.c_void_p(0),
+                  restype=ctypes.c_bool,
+                  argtypes=[ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p])
+        return bool(ok)
+    except Exception:
+        return False
+
+
 def enable_tahoe_chrome(widget, material=_MATERIAL_SIDEBAR, titlebar_height=None):
     """Apply the frameless-titlebar + behind-window vibrancy treatment to a
     shown Qt top-level widget. Must be called after the native window exists

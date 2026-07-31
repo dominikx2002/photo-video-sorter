@@ -2,6 +2,16 @@ import os
 import hashlib
 import shutil
 
+
+def trash_or_remove(path):
+    """Send a file to the Trash (recoverable) when possible, otherwise remove it
+    permanently. Raises OSError only if the permanent removal also fails."""
+    from sorter_logic.mac_chrome import move_to_trash
+    if move_to_trash(path):
+        return
+    os.remove(path)
+
+
 def unique_path(dest_dir, filename):
     base, ext = os.path.splitext(filename)
     candidate = os.path.join(dest_dir, filename)

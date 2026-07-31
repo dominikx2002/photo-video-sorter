@@ -12,6 +12,7 @@ from sorter_logic.theme import mark_primary, mark_secondary, accent
 from sorter_logic.i18n import translator as tr
 from sorter_logic.settings_store import load_enabled_extensions
 from steps.file_types_dialog import FileTypesDialog
+from shimmer_progress import replace_progressbar
 from paths import resource_path
 
 
@@ -49,7 +50,7 @@ class SourceStep(QObject):
         self.add_path_btn = self.window.findChild(QPushButton, "addPathButton")
         self.choose_folder_label = self.window.findChild(QLabel, "chooseFolderLabel")
         self.scan_btn = self.window.findChild(QPushButton, "scanFolderButton")
-        self.progress_bar = self.window.findChild(QProgressBar, "scanProgressBar")
+        self.progress_bar = replace_progressbar(self.window, "scanProgressBar")
         self.status_label = self.window.findChild(QLabel, "statusLabel")
         self.found_types_label = self.window.findChild(QLabel, "foundTypesLabel")
         self.continue_btn = self.window.findChild(QPushButton, "continueButton")
@@ -82,7 +83,7 @@ class SourceStep(QObject):
         self.paths_scroll.setFrameShape(QFrame.NoFrame)
         self.paths_scroll.viewport().setStyleSheet("background: transparent;")
 
-        self.add_path_btn.clicked.connect(lambda: self._add_row(browse=True))
+        self.add_path_btn.clicked.connect(lambda: self._add_row())
         self.scan_btn.clicked.connect(self.scan_folder)
         self.continue_btn.clicked.connect(self.continue_requested.emit)
         self.back_btn.clicked.connect(self.back_requested.emit)
@@ -151,9 +152,11 @@ class SourceStep(QObject):
         return out
 
     def _update_rows_state(self):
-        only_one = len(self.path_rows) <= 1
+        # The remove button only appears once there's more than one folder;
+        # with a single row there's nothing to remove.
+        multiple = len(self.path_rows) > 1
         for e in self.path_rows:
-            e["remove"].setEnabled(not only_one)
+            e["remove"].setVisible(multiple)
         self.scan_btn.setEnabled(bool(self._selected_paths()))
         self._update_scroll_height()
 
